@@ -1,0 +1,5 @@
+{
+  "src": "learn_up_installer",
+  "coverageCommand": "uv run pytest",
+  "failOnCrap": 10
+}

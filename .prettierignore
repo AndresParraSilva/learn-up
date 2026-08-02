@@ -1,0 +1,4 @@
+.local/
+.venv/
+coverage.json
+node_modules/

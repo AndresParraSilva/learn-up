@@ -1,0 +1,24 @@
+{
+  "name": "learn-up",
+  "version": "0.1.0",
+  "description": "Turn trusted source material into a personalized study application.",
+  "author": {
+    "name": "Andrés Parra"
+  },
+  "license": "MIT",
+  "keywords": ["learning", "education", "study", "agent-skill"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Learn Up",
+    "shortDescription": "Build a gamified study app from trusted sources",
+    "longDescription": "Creates personalized lessons, explained quizzes, exercises, spaced-repetition reviews, and progress tracking from authoritative source material.",
+    "developerName": "Andrés Parra",
+    "category": "Education",
+    "capabilities": ["Interactive", "Write"],
+    "defaultPrompt": [
+      "Build a study app for GitHub Actions.",
+      "Help me prepare for a certification.",
+      "Create a multilingual learning plan."
+    ]
+  }
+}

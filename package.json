@@ -1,0 +1,11 @@
+{
+  "name": "learn-up-skill",
+  "private": true,
+  "scripts": {
+    "format": "prettier --write \"**/*.{md,yaml,yml,json,ts,tsx,css}\"",
+    "format:check": "prettier --check \"**/*.{md,yaml,yml,json,ts,tsx,css}\""
+  },
+  "devDependencies": {
+    "prettier": "3.8.3"
+  }
+}

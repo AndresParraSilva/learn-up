@@ -1,0 +1,10 @@
+interface:
+  display_name: "learn-up"
+  short_description: "Turn trusted sources into a study app"
+  icon_small: "./assets/favicon-32.png"
+  icon_large: "./assets/favicon-512.png"
+  brand_color: "#2F6FA6"
+  default_prompt: "Use $learn-up to build a source-grounded study app for a topic I want to master."
+
+policy:
+  allow_implicit_invocation: false
