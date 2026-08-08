@@ -25,6 +25,10 @@ be authoritative, readable, and clearly named.
    placeholders), e.g. `01-architecture-overview.pdf`, not `download(3).pdf`.
 4. **Respect access & licensing.** Only download openly available material. If a key source is
    paywalled, note it in `SOURCES.md` and point the user to it rather than scraping it.
+5. **Record every source.** Add user-provided files and URLs as well as agent-gathered material to
+   `SOURCES.md`. The generated About page renders this index verbatim, so an unindexed source is a
+   missing provenance record. Mark each source's origin explicitly as `User provided` or
+   `Agent gathered`.
 
 ## `sources/<topic_slug>/SOURCES.md`
 
@@ -33,11 +37,17 @@ Maintain an index the user (and Gemini Notebook) can navigate:
 ```markdown
 # Sources — <Topic>
 
-| File                  | Title                  | URL       | Authority / freshness                | Why it's here                      |
-| --------------------- | ---------------------- | --------- | ------------------------------------ | ---------------------------------- |
-| 01-official-guide.pdf | Official Study Guide   | https://… | Primary; checked YYYY-MM-DD          | Canonical scope + terminology      |
-| 02-architecture.md    | Architecture deep-dive | https://… | Maintainer guide; checked YYYY-MM-DD | Best explanation of the core model |
+| File                  | Title                  | Origin         | URL       | Authority / freshness                | Why it's here                      |
+| --------------------- | ---------------------- | -------------- | --------- | ------------------------------------ | ---------------------------------- |
+| 01-official-guide.pdf | Official Study Guide   | User provided  | https://… | Primary; checked YYYY-MM-DD          | Canonical scope + terminology      |
+| 02-architecture.md    | Architecture deep-dive | Agent gathered | https://… | Maintainer guide; checked YYYY-MM-DD | Best explanation of the core model |
 ```
+
+Use a stable local label such as `Local file supplied during intake` when a user-provided file has
+no URL. After the table, record known conflicts, staleness, language differences, paywalls, and
+coverage gaps under `## Limitations`; write `None identified.` when the review found none. Never
+omit a received source because it was not ultimately used for a lesson—retain it and explain that
+decision in `Why it's here` or `Limitations`.
 
 ## How sources map to lessons
 

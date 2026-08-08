@@ -28,6 +28,8 @@ SQLAlchemy** (not async) — this is the one deliberate divergence from the temp
   try to load whatever driver the other URL's scheme implies (e.g. crash with
   `ModuleNotFoundError: No module named 'asyncpg'`) instead of using DuckDB. This bit a real build —
   don't reintroduce it.
+- **Version:** two-part `MAJOR.MINOR`, starting at `1.0`; `[project].version` is authoritative. See
+  `references/about.md` for compatibility and update rules.
 - **Content:** version-controlled **YAML/Markdown** under `content/<topic_slug>/`, seeded into DuckDB.
 - **Frontend:** **React SPA** — Vite + **TypeScript** under `frontend/`, React Router, react-markdown
   - remark-gfm, mermaid.
@@ -36,7 +38,8 @@ SQLAlchemy** (not async) — this is the one deliberate divergence from the temp
 
 ```
 learn-up/
-  pyproject.toml  .python-version  README.md  AGENTS.md  learn_up.duckdb (gitignored)
+  pyproject.toml  .python-version  README.md  ABOUT.md  AGENTS.md
+  learn_up.duckdb (gitignored)
   .env.example                    # documents every LEARNUP_* setting; .env is gitignored
   main.py                         # entrypoint: `from app.main import app`
   app/                            # FastAPI backend (see references/backend.md)
@@ -58,7 +61,7 @@ learn-up/
 ```toml
 [project]
 name = "learn-up"
-version = "0.1.0"
+version = "1.0"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
@@ -82,6 +85,15 @@ openhands = ["openhands-sdk>=1.36.1", "openhands-tools>=1.36.1"]
 testpaths = ["tests"]
 pythonpath = ["."]
 ```
+
+## Generated `AGENTS.md`
+
+For a NEW-APP run, copy `assets/agents.template.md` to root `AGENTS.md`; do not reconstruct it from
+the reference prose. Replace `<app_version>` with `1.0` and `<faq_llm_backend>` with the exact intake
+value, remove the template note, and tailor optional-module and command statements to the generated
+implementation. Fail the build if an angle-bracket placeholder remains. Before handoff, compare the
+finished file against the generated README, `pyproject.toml`, settings, repository layout, and
+enabled modules and correct every mismatch.
 
 ## DuckDB specifics (important)
 

@@ -266,4 +266,11 @@ is one flat list where each question carries a `topic`. Otherwise the schemas ma
 - domain weights don't sum to 100, or exam facts don't match the encoded constants.
 
 Also add a `content/<topic_slug>/CHANGELOG.md` with the `syllabus_version` and dated entries
-(use today's date from Phase 0).
+(use today's date from Phase 0). The generated About page renders this file verbatim. Keep it
+non-empty and document every later topic-content change here; follow `references/about.md` for the
+separate app compatibility-version bump that accompanies every content change.
+
+In addition to the coverage checks above, the validator must enforce the About data contract from
+`references/about.md`: valid two-part app version, current version represented in root `ABOUT.md`,
+and non-empty `INTAKE.md`, `SOURCES.md`, and `CHANGELOG.md` for every topic. Fail loudly rather than
+rendering an incomplete About page.

@@ -300,9 +300,15 @@ just has `undefined` for `body_markdown` etc., so the page has nothing to show a
   endpoints below), so a search box that matched on them would leak a lab's answer to anyone
   typing a guess into the search box before attempting it.
 - **Strategy pages** — lessons + a strategy drill (cert topics only).
-- **BadgesPage / AboutPage** — earned/locked badges; about = what the app is + content version.
-  `GET /progress/badges` returns a flat `list[BadgeOut]` — split it into earned/locked client-side via
-  `earned_at !== null`, don't expect the backend to pre-split it.
+- **BadgesPage** — `GET /progress/badges` returns a flat `list[BadgeOut]`; split it into
+  earned/locked client-side via `earned_at !== null`, don't expect the backend to pre-split it.
+- **AboutPage** — fetch `GET /api/t/{topic_slug}/about` and mirror `AboutOut` from
+  `references/backend.md` exactly. Show `App version <app_version>` as visible metadata, then render
+  all four Markdown fields with the shared `Markdown` component under clear App, Configuration,
+  Sources, and Content changes sections. Do not summarize, filter, truncate, collapse by default, or
+  copy values into JSX constants: the page must expose every intake answer/configuration parameter
+  and every source entry from disk. Follow `references/about.md` for the full data, versioning,
+  validation, and live-test contract.
 
 ## Components
 

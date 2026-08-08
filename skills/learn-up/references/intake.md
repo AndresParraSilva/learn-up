@@ -96,9 +96,49 @@ Phase 2. Do not invent them.
 
 ## Write it down
 
-Create `sources/<topic_slug>/INTAKE.md` capturing: topic, topic_slug, current knowledge, objective
-(verbatim), enabled modules, content language, NotebookLM output language code, FAQ LLM backend,
-and (if any) exam facts. This file is the contract the rest of the build follows.
+Create `sources/<topic_slug>/INTAKE.md` as the exhaustive, human-readable configuration record that
+the generated About page renders. Record every question and answer from the interview, every
+follow-up answer, and every configuration constraint the user supplied before or during the build.
+Do not keep an answer only in chat or agent memory.
+
+Use this minimum structure, adding rows rather than omitting information:
+
+```markdown
+# Intake — <Topic>
+
+## Configuration
+
+| Parameter                  | Value                                             |
+| -------------------------- | ------------------------------------------------- |
+| Topic                      | <topic>                                           |
+| Topic slug                 | <topic_slug>                                      |
+| Current knowledge          | <answer>                                          |
+| Objective                  | <verbatim answer>                                 |
+| Deadline                   | <answer or Not applicable>                        |
+| Existing material          | <answer, paths, and/or URLs>                      |
+| Content language           | <answer>                                          |
+| NotebookLM output language | <exact locale code>                               |
+| FAQ LLM backend            | <claude_cli, codex_cli, or openhands>             |
+| Assessment enabled         | <true or false>                                   |
+| Strategy enabled           | <true or false>                                   |
+| Labs enabled               | <true or false>                                   |
+| Topic sizing               | <small, medium, or large and the confirmed scope> |
+
+## Exam facts
+
+<Every captured certification fact, or "Not applicable — not a certification topic.">
+
+## Additional constraints and preferences
+
+<Every other user-provided parameter or "None provided.">
+```
+
+Preserve free-form answers verbatim. Use `Not applicable` only when a question genuinely does not
+apply; never use it to hide a question that was skipped. Do not record credentials, tokens, API
+keys, or secret environment values. Record only the relevant environment-variable name and intended
+configuration state when a feature requires a secret. This file is the contract the rest of the
+build follows and must remain synchronized with the generated About page through
+`references/about.md`'s endpoint.
 
 ## Sizing hint (feeds Phase 3)
 

@@ -81,16 +81,19 @@ short structured interview directly in chat. You must learn:
   agent and preference. Prefer the authenticated CLI they are already using; never silently switch
   providers or introduce an API charge.
 
-Write the answers into a working `sources/<topic_slug>/INTAKE.md` so later phases (and the user)
-can see them. Do not proceed until the objective and the two module toggles are settled.
+Write every questionnaire answer, follow-up answer, and user-supplied configuration constraint into
+the structured `sources/<topic_slug>/INTAKE.md` contract in `references/intake.md` so later phases
+and the About page can show them. Do not proceed until the objective and the two module toggles are
+settled.
 
 ## Phase 2 — Gather sources → `references/sources.md`
 
 Use the host's web search/browsing capability to find the most authoritative, current sources for
 this topic (official docs, standards, canonical textbooks/guides, reputable references). Download the best ones into
 `sources/<topic_slug>/` (PDFs/HTML/markdown), alongside anything the user provided. Keep a
-`sources/<topic_slug>/SOURCES.md` index: filename, title, URL, one-line why. These files are what
-the user will feed to Gemini Notebook per lesson, so name them clearly.
+`sources/<topic_slug>/SOURCES.md` index: filename, title, user-provided/agent-gathered origin, URL,
+authority/freshness, why, and limitations. These files are what the user will feed to Gemini
+Notebook per lesson, so name them clearly. Index every received source, even when it is not used.
 
 ## Phase 3 — Design the syllabus → `references/content-schema.md`
 
@@ -139,7 +142,14 @@ the raw placeholder text until something rewrites it. See `references/notebooklm
   add the canonical favicon and theme-color tags from `references/frontend.md` to
   `frontend/index.html`. Copy `assets/gitignore.template` to `.gitignore` at the repo root, then run
   `git init`. Do **not** make an initial commit — leave that for the user to review and do themselves.
-  Write the generated repo's own `AGENTS.md` and `README.md`.
+  Create root `ABOUT.md` and its About API/page per `references/about.md`. Create the generated
+  repo's own `AGENTS.md` by copying `assets/agents.template.md` rather than writing one from memory.
+  Replace `<app_version>` with `1.0` and `<faq_llm_backend>` with the intake-selected backend, remove
+  the template note, and tailor feature/command statements to the app actually generated. Before
+  handoff, fail if any angle-bracket template placeholder remains, and verify `AGENTS.md` agrees
+  with the generated `README.md`, configuration, structure, and enabled modules. The generated
+  README must identify the current app compatibility version and point maintainers to `AGENTS.md`'s
+  About/version rules.
   Also scaffold the Gemini Notebook video-placeholder resolution tooling per
   `references/notebooklm-automation.md`: the `media/` static mount in `app/main.py`, the `/media`
   vite proxy entry, `assets/lesson_video_service.py` → `app/services/lesson_video.py`,
@@ -202,7 +212,8 @@ Per the generated `README.md`:
    and that the configured provider settings are present. Do not auto-detect or fall back to
    another backend.
 3. `uv run python -m app.content.seed` (loads every topic's content into DuckDB)
-4. `uv run python -m app.content.validate` (fails loudly on coverage gaps / dangling tags)
+4. `uv run python -m app.content.validate` (fails loudly on coverage gaps, dangling tags, malformed
+   app versions, missing About documents, or incomplete intake/source records)
 5. Before starting either server, **check whether the default ports (8011 backend, 5173 frontend) are
    already bound by an unrelated process** using a platform-appropriate command or Python socket
    probe (see `references/tech-stack.md`). If so, do
@@ -220,6 +231,9 @@ dev -- --port <port>`. Confirm `uv run uvicorn ...` works with **zero env-var ov
    report its concrete missing dependency, executable, credential, model, or endpoint; do not switch
    backends silently. See `references/backend.md`'s "Select-to-ask FAQ".
    Report the URLs. If validation fails, fix the content gap it names — do not weaken the validator.
+8. Fetch each topic's `/api/t/<topic_slug>/about`, open its About page, and compare the displayed app
+   version, questionnaire/configuration values, source entries, and change histories against the
+   files on disk. A fresh NEW-APP build must report version `1.0`.
 
 ## Reference index
 
@@ -235,6 +249,7 @@ dev -- --port <port>`. Confirm `uv run uvicorn ...` works with **zero env-var ov
 | `references/ui-design.md`             | Phase 5 — design tokens, fonts, components (uses `assets/index.css`)                                                                                    |
 | `references/multi-topic.md`           | ADD-TOPIC runs — extending an existing learn-up repo                                                                                                    |
 | `references/notebooklm-automation.md` | Phase 5 scaffolding, and any GENERATE-VIDEO run — resolving the video placeholder (button / MCP on-demand / script / manual)                            |
+| `references/about.md`                 | Phase 5 scaffolding and later app/content updates — About data, compatibility versioning, validation, and rendering                                     |
 
 **Assets (copy into the generated repo):**
 
@@ -244,7 +259,9 @@ dev -- --port <port>`. Confirm `uv run uvicorn ...` works with **zero env-var ov
   `assets/apple-touch-icon.png` → `frontend/public/` **verbatim**. These are the topic-neutral
   learn-up book-and-fruit-tree mark; wire all four into `frontend/index.html` exactly as shown in
   `references/frontend.md`. Never regenerate or retheme them per topic.
-- `assets/agents.template.md` → the generated repo's `AGENTS.md` (fill the `<…>` blanks).
+- `assets/agents.template.md` → the generated repo's `AGENTS.md`. Copy it first; fill
+  `<app_version>` and `<faq_llm_backend>`, tailor it to the actual build, delete its template note,
+  and fail if an angle-bracket placeholder remains. Do not re-create its rules from memory.
 - `assets/gitignore.template` → the repo root's `.gitignore` **verbatim** (excludes `learn_up.duckdb`
   and its `.wal` sidecar, `.claude/` runtime state, `.venv/`, `node_modules/`, `frontend/dist/`, `.env`,
   and — critically — `*.mp4`, since generated lesson videos under `media/<topic_slug>/` can be tens of

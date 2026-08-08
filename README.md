@@ -25,6 +25,8 @@ sources, proposes a syllabus for your approval, and builds a local app around th
   hosted/local model.
 - Optional Gemini Notebook video summaries, generated one lesson at a time.
 - Multiple independent subjects in the same app.
+- A complete per-topic About page showing app version, questionnaire/configuration answers, source
+  provenance, and app/content change history.
 
 ## Real uses
 
@@ -138,8 +140,15 @@ lessons, hands-on labs where relevant, and a certification-style mock exam.
 
 `learn-up` prefers official documentation, standards, primary sources, canonical texts, and
 reputable references. It records source URLs, authority, freshness, language, and limitations in a
-topic-level `SOURCES.md` file. If an objective lacks solid material, the correct behavior is to stop
-and tell you—not fill the gap from model memory.
+topic-level `SOURCES.md` file, including whether each source came from you or was gathered by the
+agent. The generated About page renders that complete index alongside every intake answer. If an
+objective lacks solid material, the correct behavior is to stop and tell you—not fill the gap from
+model memory.
+
+Generated apps start at compatibility version `1.0`. Backward-compatible app/content updates bump
+the minor version; a change that prevents an existing `content/` and `media/` pair from being copied
+into the updated app unchanged bumps the major version. The generated `AGENTS.md` makes About-page
+documentation and this compatibility check mandatory for later maintenance.
 
 For certification topics, use the current official exam guide or blueprint as the source of truth
 for scope. Treat dumps, old prep books, and community question banks as secondary evidence.

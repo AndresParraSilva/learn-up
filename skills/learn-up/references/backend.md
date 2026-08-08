@@ -86,6 +86,9 @@ stay isolated. Recommended routers:
 - `app/api/catalog.py` → prefix `/api`
   - `GET  /api/t/{topic_slug}/domains` — domains with nested objectives.
   - `GET  /api/t/{topic_slug}/content-info` — version/counts.
+  - `GET  /api/t/{topic_slug}/about` — app version plus the complete app, intake, source, and
+    topic-change Markdown used by AboutPage. Implement the path and fail-loud file handling exactly
+    as specified in `references/about.md`.
 - `app/api/lessons.py` → prefix `/api/t/{topic_slug}/lessons`
   - `GET  ""` (list), `GET /objective/{code}`, `GET /{slug}`.
   - **`GET /objective/{code}` returns a `list[LessonListItem]`, not a single lesson** — an objective
@@ -162,6 +165,13 @@ class DomainOut(BaseModel):                    # GET /api/t/{topic}/domains (lis
 class ContentInfoOut(BaseModel):               # GET /api/t/{topic}/content-info
     syllabus_version: str; domain_count: int; objective_count: int
     lesson_count: int; question_count: int; lab_count: int
+
+class AboutOut(BaseModel):                     # GET /api/t/{topic}/about
+    app_version: str
+    app_markdown: str
+    intake_markdown: str
+    sources_markdown: str
+    content_changes_markdown: str
 
 class FaqEntryOut(BaseModel):                  # parsed from faq_markdown, see FAQ section above
     index: int; question: str; selected_text: str | None = None; answer_markdown: str

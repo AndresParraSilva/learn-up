@@ -27,6 +27,11 @@ independent topic**, not rebuilding. Topics never share content, sources, or pro
      Do this as a clearly separate step and tell the user before touching their working app.
 4. **Seed + validate + run** (Phase 6). Seeding is idempotent and loads all topics; validation checks
    every topic. The HomePage picker will now show the new topic automatically.
+5. **Expose and document the new topic on About.** Confirm its complete `INTAKE.md`, `SOURCES.md`,
+   and `content/<new_topic_slug>/CHANGELOG.md` render at `/t/<new_topic_slug>/about`. Adding a topic
+   preserves the existing content/media contract, so increment the app's `MINOR` version, add a
+   dated entry to root `ABOUT.md`, and follow `references/about.md`. If upgrading an older app first
+   makes existing `content/` or `media/` incompatible without migration, use a major bump instead.
 
 ## Content language across topics
 
@@ -62,3 +67,5 @@ come from **its own** `syllabus.yaml`, independent of other topics.
 - The new topic appears on the HomePage and links to `/t/<new_topic_slug>`.
 - Its lessons, quizzes, and (if enabled) labs/mock/strategy work in isolation.
 - Existing topics are untouched: their content, progress, and routes still work.
+- The new topic's About page exactly matches its recorded intake, sources, and content changelog;
+  the app version and root app history match every other topic's About page.
