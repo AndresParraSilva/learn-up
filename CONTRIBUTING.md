@@ -25,9 +25,12 @@ Keep changes focused. For skill workflow changes:
 3. Keep the canonical `SKILL.md` compatible with the core Agent Skills format; put host-specific
    policy in host metadata or the installer.
 4. Update references instead of duplicating long guidance in `SKILL.md`.
-5. Test the installer for both supported agents and validate the canonical skill folder with
+5. Keep portable metadata in root `plugin.json`, Codex-only metadata in
+   `.codex-plugin/plugin.json`, and synchronize shared release fields between them.
+6. Validate the Agent Plugins manifest with `python3 scripts/validate_agent_plugin.py`.
+7. Test the installer for both supported agents and validate the canonical skill folder with
    `uv run python scripts/quick_validate.py skills/learn-up`.
-6. State which operating systems and agent hosts you actually tested.
+8. State which operating systems and agent hosts you actually tested.
 
 Do not weaken a validator to make malformed content pass. Fix the content or the implementation
 that generated it.

@@ -172,6 +172,19 @@ def test_claude_installation_does_not_modify_canonical_skill(tmp_path: Path) -> 
     assert tree_snapshot(CANONICAL_SKILL) == before
 
 
+@pytest.mark.parametrize("agent", ["codex", "claude-code"])
+def test_host_manifests_are_not_copied_into_skill_installations(
+    tmp_path: Path, agent: str
+) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+
+    target = install.install(args(agent=agent, project_dir=project))
+
+    assert not (target / "plugin.json").exists()
+    assert not (target / ".codex-plugin").exists()
+
+
 def test_missing_skill_source_is_rejected(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:

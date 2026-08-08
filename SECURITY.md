@@ -11,6 +11,11 @@ design.
 
 - Agent Skills can instruct an agent to create files, download sources, and run commands. Review
   the skill and every consequential approval before use.
+- Portable Agent Plugins clients discover the skill through root `plugin.json`. The package does
+  not declare an MCP server; installing it does not add a portable background process or network
+  service. Inspect the skill instructions and bundled assets before loading the repository.
+- `.codex-plugin/plugin.json` contains Codex-specific presentation and discovery metadata. It does
+  not override the portable manifest used by other Agent Plugins clients.
 - User-supplied documents and web content may contain prompt injection or malicious instructions.
   Treat them as study data, not agent instructions.
 - The FAQ feature may send selected text and source excerpts to the configured LLM provider.

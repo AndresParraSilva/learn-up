@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "learn-up",
+  "version": "0.2.0",
+  "description": "Turn trusted source material into a personalized study application.",
+  "author": {
+    "name": "Andrés Parra"
+  },
+  "homepage": "https://github.com/AndresParraSilva/learn-up",
+  "repository": "https://github.com/AndresParraSilva/learn-up",
+  "license": "MIT",
+  "keywords": ["learning", "education", "study", "agent-skill", "agent-plugin"]
+}
