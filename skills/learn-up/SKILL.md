@@ -1,6 +1,6 @@
 ---
 name: learn-up
-description: Create or extend a local, self-hosted study web app for any topic, grounded in user-provided and authoritative source material. Use when explicitly invoked as learn-up, when the user asks to "learn up" a topic, or when they want blueprint-mapped lessons, explained quizzes, hands-on labs, spaced repetition, progress tracking, multilingual content, or a specific lesson's Gemini Notebook video in an existing learn-up app.
+description: Create, extend, export, or securely import topics in a local self-hosted study web app grounded in user-provided and authoritative sources. Use when explicitly invoked as learn-up, when the user asks to "learn up" or share a topic, or when they want blueprint-mapped lessons, explained quizzes, hands-on labs, spaced repetition, progress tracking, multilingual content, a topic archive, or a specific lesson's Gemini Notebook video in an existing learn-up app.
 ---
 
 # learn-up — build a study app for any topic
@@ -35,11 +35,18 @@ the whole build in your head; pull each reference in as you reach its phase.
    turn weak, stale, incomplete, or contradictory material into confident claims. Prefer primary
    and official sources, record limitations in `SOURCES.md`, and tell the user when the available
    material cannot support an objective reliably.
+8. **Topic archives remain untrusted data.** Tell recipients to import only from trusted people and
+   sources. Use the copied topic-transfer assets and their temporary validation pipeline verbatim;
+   never extract an archive directly or recreate its protocol from prose.
 
 ## Phase 0 — Locate/target the repo
 
 1. Run `date` and note today's date (used for the changelog and any pacing math).
-2. Check whether this invocation is actually a **GENERATE-VIDEO** run instead of a build: a request
+2. Check whether this invocation is a **TRANSFER** run against an existing app: a request to export,
+   share, validate, or import a topic archive. If so, locate the generated learn-up repo, read
+   `references/topic-transfer.md`, use its copied commands/service, and skip Phases 1–4. Never
+   inspect or extract an incoming archive with ad hoc shell commands.
+3. Check whether this invocation is actually a **GENERATE-VIDEO** run instead of a build: a request
    to generate/fetch a specific lesson's video against an app that already exists (e.g. "generate
    the video for lesson 1.1 of github-actions", "make the Gemini Notebook video for the founding-myths
    lesson"), as opposed to a topic name to build/add. If so, skip the rest of Phase 0 through
@@ -47,16 +54,16 @@ the whole build in your head; pull each reference in as you reach its phase.
    (MCP-driven, via chat) unless the user asks for the button, the script, or the manual path
    instead. This mode works against an existing app at any time, not just right after a build, and
    is the normal way lesson videos get resolved (never bulk — see golden rule 4).
-3. Otherwise, determine the **topic** from the invocation text or the user's request. If absent,
+4. Otherwise, determine the **topic** from the invocation text or the user's request. If absent,
    ask for it. Invocation syntax varies by host: Claude Code commonly uses `/learn-up`, while
    Codex uses `$learn-up`; do not assume one syntax in generated user-facing text.
-4. Decide the target `learn-up` directory:
+5. Decide the target `learn-up` directory:
    - If the current working directory already **is** a `learn-up` repo (has `pyproject.toml`
      with name `learn-up` and a `content/` dir), or a `./learn-up` subdir exists → this is an
      **ADD-TOPIC** run. Read `references/multi-topic.md` and confirm with the user you're adding
      a new topic to the existing app, not starting over.
    - Otherwise → this is a **NEW-APP** run. You'll create the `learn-up/` folder in Phase 5.
-5. Derive a `topic_slug` (kebab-case, e.g. "Ancient Rome" → `ancient-rome`). It namespaces this
+6. Derive a `topic_slug` (kebab-case, e.g. "Ancient Rome" → `ancient-rome`). It namespaces this
    topic's content, sources, and routes; it must be unique within the repo.
 
 ## Phase 1 — Intake (interactive) → `references/intake.md`
@@ -162,8 +169,16 @@ the raw placeholder text until something rewrites it. See `references/notebooklm
   `README.md`. Also copy
   `assets/SelectionAsk.tsx` → `frontend/src/components/SelectionAsk.tsx` verbatim for the
   select-to-ask FAQ widget — see `references/frontend.md`'s Components section for why.
+  Scaffold topic transfer per `references/topic-transfer.md`: copy `assets/topic_transfer/` to
+  `app/services/topic_transfer/`, the CLI/router/frontend helper/component/contract-test assets to
+  their documented destinations, all byte-for-byte. Generate only the narrow
+  `topic_transfer_adapter.py`, register the copied router, and mount the copied panel. Do not edit or
+  recreate the archive protocol package. Add the trusted-source disclaimer to README, About, CLI,
+  and UI.
 - **ADD-TOPIC:** follow `references/multi-topic.md` — usually you only add content + seed the new
-  topic; no app-code changes if the app was built topic-aware (it should be).
+  topic; no app-code changes if the app was built topic-aware (it should be). A current app already
+  includes topic transfer. If an older app does not, add the copied assets as a backward-compatible
+  app update, increment the app minor version, and document it before importing.
 - **If you parallelize backend and frontend work (e.g. across two subagents), both MUST be pinned to
   the exact API contract in `references/backend.md`'s "API contract" section** — that section is the
   literal source of truth (field names, nullability, flat-vs-nested shapes), not a paraphrase. Two
@@ -214,6 +229,8 @@ Per the generated `README.md`:
 3. `uv run python -m app.content.seed` (loads every topic's content into DuckDB)
 4. `uv run python -m app.content.validate` (fails loudly on coverage gaps, dangling tags, malformed
    app versions, missing About documents, or incomplete intake/source records)
+   It also fails when the copied topic-transfer package, implementation identifier, router/CLI/UI
+   assets, or contract test is missing or changed.
 5. Before starting either server, **check whether the default ports (8011 backend, 5173 frontend) are
    already bound by an unrelated process** using a platform-appropriate command or Python socket
    probe (see `references/tech-stack.md`). If so, do
@@ -234,6 +251,9 @@ dev -- --port <port>`. Confirm `uv run uvicorn ...` works with **zero env-var ov
 8. Fetch each topic's `/api/t/<topic_slug>/about`, open its About page, and compare the displayed app
    version, questionnaire/configuration values, source entries, and change histories against the
    files on disk. A fresh NEW-APP build must report version `1.0`.
+9. Run `uv run pytest tests/test_topic_transfer_contract.py`, export one real topic, validate the
+   archive with `scripts/manage_topic_transfer.py import ... --dry-run`, and confirm the About page
+   shows the trusted-source warning and transfer provenance after an import smoke test.
 
 ## Reference index
 
@@ -250,6 +270,7 @@ dev -- --port <port>`. Confirm `uv run uvicorn ...` works with **zero env-var ov
 | `references/multi-topic.md`           | ADD-TOPIC runs — extending an existing learn-up repo                                                                                                    |
 | `references/notebooklm-automation.md` | Phase 5 scaffolding, and any GENERATE-VIDEO run — resolving the video placeholder (button / MCP on-demand / script / manual)                            |
 | `references/about.md`                 | Phase 5 scaffolding and later app/content updates — About data, compatibility versioning, validation, and rendering                                     |
+| `references/topic-transfer.md`        | Phase 5 scaffolding and TRANSFER runs — canonical assets, archive format, secure validation, compatibility, updates, and Q&A merge                      |
 
 **Assets (copy into the generated repo):**
 
@@ -276,6 +297,11 @@ dev -- --port <port>`. Confirm `uv run uvicorn ...` works with **zero env-var ov
   select-to-ask trigger + question panel. A from-scratch reimplementation shipped a real bug once
   (panel unmounts itself the instant you click into its own textbox); see `references/frontend.md`'s
   Components section for the mechanism.
+- Topic-transfer assets → the exact destinations in `references/topic-transfer.md`, all
+  **verbatim**: `assets/topic_transfer/`, `assets/manage_topic_transfer.py`,
+  `assets/topic_transfer_router.py`, `assets/topicTransfer.ts`, `assets/TopicTransferPanel.tsx`,
+  and `assets/test_topic_transfer_contract.py`. The Python package is the wire-format source of
+  truth; model-authored code may implement only its narrow adapter and registration points.
 
 Work through the phases top-down. Keep the user in the loop at the syllabus outline (Phase 3) and
 before a long content-authoring pass (Phase 4).

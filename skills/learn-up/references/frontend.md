@@ -160,6 +160,10 @@ just has `undefined` for `body_markdown` etc., so the page has nothing to show a
 - A "＋ Add a topic" note tells the user to invoke the `learn-up` skill with a new topic in their
   coding agent (for example, `/learn-up <topic>` in Claude Code or `$learn-up <topic>` in Codex) —
   topics never share content or progress.
+- Mount the copied `TopicTransferPanel` below the picker without `topicSlug`, so a recipient can
+  choose an archive, review its dry-run compatibility/update report, and explicitly confirm import.
+  Refresh `GET /api/topics` and navigate to the imported slug after success. Do not extract or parse
+  the archive in the browser.
 
 ## TopBar
 
@@ -308,15 +312,24 @@ just has `undefined` for `body_markdown` etc., so the page has nothing to show a
   Sources, and Content changes sections. Do not summarize, filter, truncate, collapse by default, or
   copy values into JSX constants: the page must expose every intake answer/configuration parameter
   and every source entry from disk. Follow `references/about.md` for the full data, versioning,
-  validation, and live-test contract.
+  validation, and live-test contract. Mount the copied `TopicTransferPanel` with this topic's slug
+  for export, and show its fixed trusted-source warning. Import provenance appears through the
+  rendered topic changelog, not a second client-side history.
 
 ## Components
 
 `AppShell`, `TopBar`, `TitleBlock` (page header w/ back link + eyebrow + meta chips), `Markdown`,
 `Mermaid`, `QuizRunner`, `FaqSection`, `TeachingArticle` (wraps lesson body + FAQ + select-to-ask),
-`BadgeToast`, `VideoGenerationPanel` (copy `assets/VideoGenerationPanel.tsx` verbatim — the "Generate
+`BadgeToast`, `TopicTransferPanel` (copy `assets/TopicTransferPanel.tsx` and
+`assets/topicTransfer.ts` verbatim), `VideoGenerationPanel` (copy
+`assets/VideoGenerationPanel.tsx` verbatim — the "Generate
 Gemini Notebook video" button + poll/error/retry states, rendered by `Markdown` in place of the
 placeholder call-out, see `references/notebooklm-automation.md`).
+
+`TopicTransferPanel` is deliberately a thin client of the copied backend protocol. It downloads an
+export, uploads a raw ZIP for dry-run, displays source/destination versions, ignored files, skipped
+and merged Q&A, and requires a second click to confirm. Do not add browser-side compatibility rules
+or silently import on file selection; the backend report is authoritative.
 
 **Don't set `TitleBlock`'s `eyebrow` to the topic name.** `TopBar` already renders the current
 topic's name persistently (`topbar__topic`, next to the `learn-up` mark) on every page inside a

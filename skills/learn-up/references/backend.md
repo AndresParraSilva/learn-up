@@ -2,7 +2,7 @@
 
 ## Contents
 
-- Configuration, database, media, and API contract
+- Configuration, database, media, topic transfer, and API contract
 - Constants and core algorithms
 - Gamification and select-to-ask FAQ
 - Claude CLI, Codex CLI, and OpenHands backends
@@ -83,6 +83,13 @@ stay isolated. Recommended routers:
 - `app/api/topics.py` → prefix `/api/topics`
   - `GET  /api/topics` — list topics (slug, name, description, counts) for the home picker.
   - `GET  /api/topics/{slug}` — one topic's metadata + enabled modules.
+- `app/api/topic_transfer.py` — copy `assets/topic_transfer_router.py` verbatim and include its
+  router without changing the wire behavior:
+  - `GET /api/t/{topic_slug}/export` — export one `.learnup.zip` archive.
+  - `POST /api/topics/import?dry_run=true` — validate a capped raw ZIP request in a temporary
+    directory and return a side-effect-free report.
+  - `POST /api/topics/import?dry_run=false&confirm=true` — repeat validation and perform a confirmed
+    import/update with backup and rollback.
 - `app/api/catalog.py` → prefix `/api`
   - `GET  /api/t/{topic_slug}/domains` — domains with nested objectives.
   - `GET  /api/t/{topic_slug}/content-info` — version/counts.
@@ -131,6 +138,28 @@ topic_slug)` helper (note it takes `topic_slug`, not just the ORM row) computes 
     `POST /questions/{id}/check`, plus the FAQ routes.
 
 A single **default user** is used (create-on-first-use, tolerate the race). No auth.
+
+## Topic-transfer service and adapter
+
+Follow `references/topic-transfer.md`. Copy the protocol package, router, CLI, frontend helper, and
+contract test byte-for-byte. The copied router deliberately accepts a raw `application/zip` body so
+the app needs no multipart dependency and streams it into a bounded temporary file before parsing.
+Never call `request.body()` for an import and never extract directly into a live topic path.
+
+Generate only `app/services/topic_transfer_adapter.py`, exposing `get_adapter()` for the copied CLI
+and router. Its adapter implements exactly:
+
+```python
+class TransferAdapter(Protocol):
+    def resolve_topic_name(self, topic_slug: str) -> str: ...
+    def validate_staged_topic(self, staging_root: Path, topic_slug: str) -> None: ...
+    def reseed_and_validate(self) -> None: ...
+```
+
+Resolve the name through the normal topic catalog. Run the complete content/About validator against
+the supplied staged root without mutating live paths. Reseed and validate the live app after an
+install or rollback. Do not move ZIP, manifest, compatibility, hashing, file validation, merge, or
+backup logic into the adapter.
 
 ## API contract — the literal source of truth (`app/schemas.py`)
 

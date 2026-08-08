@@ -17,6 +17,10 @@ design.
 - Automated Gemini Notebook videos use an unofficial third-party client for undocumented Google
   APIs. Its stored session cookies are sensitive credentials. Never commit or share them.
 - Generated `.env` files, DuckDB files, and videos are intentionally excluded from source control.
+- Generated apps can import `.learnup.zip` topic archives, but recipients must still trust the
+  sender and sources. The copied importer validates only regular Markdown, YAML, and MP4 in an
+  isolated temporary directory, rejects unsafe archive structure and incompatible versions, and
+  never treats validation as a substitute for provenance.
 
 ## Reporting a vulnerability
 

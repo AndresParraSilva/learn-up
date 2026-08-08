@@ -62,6 +62,9 @@ sources/     downloaded study sources per topic (fed to Gemini Notebook) + INTAK
 media/       generated lesson videos, `{topic_slug}/{slug}.mp4` (gitignored), served at /media
 scripts/     generate_lesson_video.py — thin CLI wrapper around app/services/lesson_video.py
              (also used by the lesson page's "Generate Gemini Notebook video" button; optional `notebooklm` dep group)
+             manage_topic_transfer.py — verbatim secure topic export/import CLI
+app/services/topic_transfer/        verbatim archive protocol package; never reimplement or fork
+.learnup-backups/                    gitignored recoverable topic-update backups
 frontend/    React + Vite + TS SPA
 tests/       backend tests
 ```
@@ -107,22 +110,51 @@ Keep `main.py` importing `app.main:app`.
   frontend build is not sufficient evidence.
 - Never expose credentials on About. Record configuration choices and secret environment-variable
   names, not secret values.
+- Treat the `.learnup.zip` format and existing exported archives as part of content/media
+  compatibility. Increment `MAJOR` if a previous archive needs migration or transformation before
+  import; a backward-compatible archive-format extension increments its format minor and app
+  `MINOR`.
+- Import provenance belongs in the topic changelog/About. Never overwrite the destination root
+  `ABOUT.md` with the source app's archived About snapshot.
 
-## 7. Commands
+## 7. Topic transfer security
+
+- Import learn-up topics only from people and sources you trust. Validation reduces common archive
+  risks but cannot make an untrusted archive safe. Keep this warning in README, About, CLI, and UI.
+- `app/services/topic_transfer/`, `app/api/topic_transfer.py`,
+  `scripts/manage_topic_transfer.py`, `frontend/src/api/topicTransfer.ts`,
+  `frontend/src/components/TopicTransferPanel.tsx`, and
+  `tests/test_topic_transfer_contract.py` are copied protocol assets. Do not re-create or customize
+  their archive behavior. App-specific code is limited to the narrow transfer adapter and
+  router/component registration.
+- Allow only verified regular `.md`, `.yaml`, and `.mp4` topic files. Validate in a temporary
+  directory; reject unsafe structure, paths, links, limits, manifests, checksums, content signatures,
+  or versions before touching live paths. Unsupported safe files are ignored and reported, never
+  installed or executed.
+- Always run import dry-run first. An existing slug is an update: show the report, require explicit
+  confirmation, create a timestamped backup, merge well-formed unique Q&A best-effort, and restore
+  the backup if installation, seeding, or validation fails.
+- Never transfer DuckDB, progress, attempts, credentials, `.env`, NotebookLM session/task state,
+  source binaries, or unrelated topics.
+
+## 8. Commands
 
 - Install/sync backend: `uv sync` · Add dep: `uv add PACKAGE`
 - Run backend (dev): `uv run uvicorn app.main:app --reload --port 8011`
 - Seed content: `uv run python -m app.content.seed`
 - Validate coverage: `uv run python -m app.content.validate`
+- Export topic: `uv run python scripts/manage_topic_transfer.py export {slug} --output {archive.learnup.zip}`
+- Validate topic archive: `uv run python scripts/manage_topic_transfer.py import {archive.learnup.zip} --dry-run`
+- Confirm topic import: `uv run python scripts/manage_topic_transfer.py import {archive.learnup.zip} --confirm`
 - Tests: `uv run pytest`
 - Frontend (from `frontend/`): `npm install`, `npm run dev`, `npm run build`, `npm run lint`,
   `npm test` (vitest)
 
-## 8. Git operations
+## 9. Git operations
 
 - Commit or push only when the user explicitly asks. Keep commits focused.
 
-## 9. Workflow
+## 10. Workflow
 
 - Adding a topic never breaks existing topics. Never modify the crontab.
 - Update this file when a stack/structure/convention decision changes.

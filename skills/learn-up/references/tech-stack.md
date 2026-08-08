@@ -47,13 +47,17 @@ learn-up/
     api/       # attempts, catalog, labs, lessons, progress, strategy, topics
     services/  # attempts, grading, mastery, progress, gamification, labs, teaching, strategy
       lesson_qa/            # FAQ core + backends/{claude_cli,codex_cli,openhands}.py
+      topic_transfer/       # verbatim protocol package from assets/topic_transfer/
+      topic_transfer_adapter.py # narrow generated catalog/validation adapter
     content/   # seed.py, validate.py, faq.py
   content/<topic_slug>/...         # per-topic YAML/Markdown (see references/content-schema.md)
   sources/<topic_slug>/...         # downloaded study sources + INTAKE.md + SOURCES.md
   media/<topic_slug>/...           # generated lesson videos, gitignored (see notebooklm-automation.md)
   scripts/generate_lesson_video.py # optional notebooklm-py-driven video generation
+  scripts/manage_topic_transfer.py # verbatim export/import CLI
   frontend/                        # React + Vite + TS (see references/frontend.md)
-  tests/                           # backend tests
+  tests/test_topic_transfer_contract.py # verbatim protocol contract test
+  .learnup-backups/                # gitignored recoverable import-update backups
 ```
 
 ## `pyproject.toml`
@@ -119,6 +123,9 @@ enabled modules and correct every mismatch.
 - Run backend (dev): `uv run uvicorn app.main:app --reload --port 8011`
 - Seed content: `uv run python -m app.content.seed`
 - Validate coverage: `uv run python -m app.content.validate`
+- Export topic: `uv run python scripts/manage_topic_transfer.py export <slug> --output <file.learnup.zip>`
+- Validate import: `uv run python scripts/manage_topic_transfer.py import <file.learnup.zip> --dry-run`
+- Confirm import: `uv run python scripts/manage_topic_transfer.py import <file.learnup.zip> --confirm`
 - Tests: `uv run pytest`
 - Frontend (from `frontend/`): `npm install`, `npm run dev`, `npm run build`, `npm run lint`
 

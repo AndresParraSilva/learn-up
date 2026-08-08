@@ -33,6 +33,16 @@ independent topic**, not rebuilding. Topics never share content, sources, or pro
    dated entry to root `ABOUT.md`, and follow `references/about.md`. If upgrading an older app first
    makes existing `content/` or `media/` incompatible without migration, use a major bump instead.
 
+## Importing a shared topic
+
+Import is the only path where an existing slug intentionally means an update instead of a naming
+collision. Follow `references/topic-transfer.md` and use the copied service: validate/dry-run first,
+show compatibility and replacement details, require confirmation, back up the existing topic, merge
+unique Q&A, then reseed and validate. Never treat an archive as an ADD-TOPIC source folder or unpack
+it manually. A new imported slug appears in the picker after reseeding; an updated slug retains its
+topic route and topic-scoped learner progress while authored files/media are replaced and Q&A is
+merged best-effort.
+
 ## Content language across topics
 
 Topics in one repo can have **different content languages** — e.g. an existing English-content

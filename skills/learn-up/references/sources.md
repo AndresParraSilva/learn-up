@@ -61,3 +61,12 @@ If web search yields nothing solid for an objective, tell the user — don't fab
 If sources conflict, are outdated, or leave material gaps, record that limitation in `SOURCES.md`
 and surface it before authoring. For certification topics, distinguish the official exam blueprint
 from third-party preparation material and let the official scope win.
+
+## Topic archives
+
+Topic export carries `INTAKE.md` and `SOURCES.md` so the receiving About page preserves the complete
+configuration and provenance record. It deliberately does not carry the source PDFs, HTML, images,
+or other binaries: the transfer allowlist is validated Markdown, YAML, and MP4 only. State this
+limitation in the export/import UI and generated README. A recipient who needs the original source
+corpus must obtain it separately from the trusted sender and review it before placing it under
+`sources/<topic_slug>/`; never smuggle it into the topic archive under a renamed suffix.

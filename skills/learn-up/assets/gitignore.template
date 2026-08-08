@@ -11,3 +11,5 @@ frontend/dist/
 media/**/.notebook.json
 media/**/.sources_added.json
 media/**/.video_tasks.json
+.learnup-backups/
+*.learnup.zip

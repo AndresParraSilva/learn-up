@@ -7,6 +7,7 @@
 - Backend and frontend contract
 - Update rules
 - Validation and smoke tests
+- Topic-transfer trust and provenance
 
 The About page is the human-readable record of how the app was configured, what evidence grounds
 each topic, and how the generated app has changed. Do not hardcode a summary that can drift from the
@@ -43,6 +44,9 @@ For every later app or content change:
    required, increment `MAJOR` and reset `MINOR` to `0` (for example, `1.4` to `2.0`).
 4. Never infer compatibility from a successful frontend build alone. Exercise the copied content
    and media in the live smoke test.
+5. Treat the topic-transfer contract as part of content/media compatibility. If old archives need
+   migration or transformation, increment `MAJOR`; a backward-compatible archive-format extension
+   increments its own format minor and the app minor.
 
 ## Source documents rendered by About
 
@@ -70,6 +74,16 @@ The topic-scoped About page renders all of these files, without truncation:
 3. `sources/<topic_slug>/SOURCES.md` — every user-provided and agent-gathered source, including its
    origin and limitations.
 4. `content/<topic_slug>/CHANGELOG.md` — the topic's dated content changes and syllabus version.
+
+It also shows this fixed warning near the topic-transfer controls:
+
+> Import learn-up topics only from people and sources you trust. Validation reduces common archive
+> risks, but it cannot make an untrusted archive safe.
+
+An imported topic appends its source app `MAJOR.MINOR`, archive format, source syllabus version,
+archive creation time, and archive SHA-256 to the topic changelog. That provenance therefore renders
+on About. Never replace root `ABOUT.md` with the source app's archived About snapshot; the root file
+always describes the destination app.
 
 Do not put secrets in these documents or return secret environment values through the API. Intake
 must never ask for credential values. When configuration depends on a secret, record only the
@@ -135,6 +149,12 @@ The generated `AGENTS.md` makes About maintenance mandatory. Apply it as follows
   compatibility version, and document the change in the topic changelog.
 - A change touching both app and content: update both change-log surfaces; use one version bump
   chosen by the compatibility test.
+- Adding topic transfer to an existing generated app: increment `MINOR`, document the copied assets,
+  and keep old content/media working unchanged. A fresh generated app still starts at `1.0` with the
+  feature included.
+- Importing a topic: preserve the destination app version/history, append import provenance to the
+  imported topic changelog, and expose the import/update report. Importing data does not itself
+  change the destination app version unless app code or its compatibility contract also changed.
 
 Keep `pyproject.toml`, the latest root `ABOUT.md` version-history entry, generated README version
 statements, and the version returned by the endpoint synchronized.
@@ -146,3 +166,6 @@ version is `1.0` on a fresh build. Open About in the browser and compare every i
 source entry against the files on disk. For an ADD-TOPIC run, verify the page switches to the new
 topic's intake, sources, and content changelog while showing the same current app version and root
 version history as every existing topic page.
+Also export and import a topic between compatible app versions. Verify the destination About page
+shows the trust warning, destination app history, source app/archive versions, and archive checksum,
+without rendering the source root app history as if it belonged to the destination.

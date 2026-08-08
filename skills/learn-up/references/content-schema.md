@@ -274,3 +274,8 @@ In addition to the coverage checks above, the validator must enforce the About d
 `references/about.md`: valid two-part app version, current version represented in root `ABOUT.md`,
 and non-empty `INTAKE.md`, `SOURCES.md`, and `CHANGELOG.md` for every topic. Fail loudly rather than
 rendering an incomplete About page.
+It must also verify every canonical topic-transfer asset listed in
+`references/topic-transfer.md` exists at its generated destination, the copied package exposes
+`IMPLEMENTATION_ID = "learn-up-topic-transfer/1"`, and
+`tests/test_topic_transfer_contract.py` is present. Fail rather than accepting a model-authored or
+partially copied protocol implementation.

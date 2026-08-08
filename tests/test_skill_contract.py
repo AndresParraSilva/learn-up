@@ -56,3 +56,49 @@ def test_skill_requires_copying_and_validating_agents_template() -> None:
     assert "copying `assets/agents.template.md`" in skill
     assert "fail if any angle-bracket template placeholder remains" in skill
     assert "`references/about.md`" in skill
+
+
+def test_skill_routes_transfer_runs_to_canonical_assets() -> None:
+    skill = read_skill_file("SKILL.md")
+    reference = read_skill_file("references/topic-transfer.md")
+
+    assert "**TRANSFER** run" in skill
+    assert "`references/topic-transfer.md`" in skill
+    assert "`assets/topic_transfer/`" in skill
+    assert "**verbatim**" in skill
+    assert "manifest.yaml" in reference
+    assert "learn-up-topic-transfer/1" in reference
+    assert "`.md`, `.yaml`, and `.mp4`" in reference
+
+
+def test_transfer_trust_and_version_rules_are_documented() -> None:
+    warning = "Import learn-up topics only from people and sources you trust"
+    about = read_skill_file("references/about.md")
+    transfer = read_skill_file("references/topic-transfer.md")
+    template = read_skill_file("assets/agents.template.md")
+
+    assert warning in about
+    assert warning in transfer
+    assert warning in template
+    assert "Different major: reject" in transfer
+    assert "incoming minor greater than destination minor" in transfer
+    assert "source-app snapshot only; never overwrite" in transfer
+    assert "destination's root `ABOUT.md`" in transfer
+    assert "merge well-formed unique Q&A" in template
+
+
+def test_topic_transfer_assets_are_complete() -> None:
+    expected = {
+        "assets/topic_transfer/__init__.py",
+        "assets/topic_transfer/core.py",
+        "assets/topic_transfer/faq.py",
+        "assets/topic_transfer/manifest.py",
+        "assets/topic_transfer/types.py",
+        "assets/manage_topic_transfer.py",
+        "assets/topic_transfer_router.py",
+        "assets/topicTransfer.ts",
+        "assets/TopicTransferPanel.tsx",
+        "assets/test_topic_transfer_contract.py",
+    }
+
+    assert all((SKILL_ROOT / relative).is_file() for relative in expected)

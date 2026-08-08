@@ -1,6 +1,6 @@
 # learn-up
 
-<img src="skills/learn-up/assets/favicon-512.png" alt="learn-up icon" width="200" />
+<img src="skills/learn-up/assets/learn-up-logo.webp" alt="learn-up logo" width="200" />
 
 Turn material you trust into a personal study web app—with lessons, explained quizzes, practical
 exercises, spaced repetition, progress tracking, and optional Gemini Notebook video summaries.
@@ -25,6 +25,8 @@ sources, proposes a syllabus for your approval, and builds a local app around th
   hosted/local model.
 - Optional Gemini Notebook video summaries, generated one lesson at a time.
 - Multiple independent subjects in the same app.
+- Secure topic export/import archives for sharing lessons, quizzes, Q&A, About records, and videos
+  between compatible learn-up installations.
 - A complete per-topic About page showing app version, questionnaire/configuration answers, source
   provenance, and app/content change history.
 
@@ -150,6 +152,23 @@ the minor version; a change that prevents an existing `content/` and `media/` pa
 into the updated app unchanged bumps the major version. The generated `AGENTS.md` makes About-page
 documentation and this compatibility check mandatory for later maintenance.
 
+## Sharing topics
+
+Generated apps can export one topic as a `.learnup.zip` archive containing its Markdown/YAML
+content, MP4 lesson videos, complete About snapshot, source app `MAJOR.MINOR`, syllabus version, and
+checksummed manifest. A recipient validates the archive in a temporary directory and reviews a
+dry-run report before confirming. A matching topic slug is an update: the app creates a recoverable
+backup and merges unique local and incoming lesson/lab/strategy Q&A best-effort before reseeding.
+
+> [!WARNING]
+> Import learn-up topics only from people and sources you trust. Validation reduces common archive
+> risks, but it cannot make an untrusted archive safe.
+
+Only verified regular `.md`, `.yaml`, and `.mp4` files are transferable. Archives exclude source
+PDFs/HTML/images, credentials, `.env`, NotebookLM state, DuckDB, learner progress, attempts, XP, and
+unrelated topics. In a generated app, use its topic picker/About controls or the documented
+`scripts/manage_topic_transfer.py` CLI.
+
 For certification topics, use the current official exam guide or blueprint as the source of truth
 for scope. Treat dumps, old prep books, and community question banks as secondary evidence.
 
@@ -173,8 +192,8 @@ and [Codex skill documentation](https://learn.chatgpt.com/docs/build-skills) for
 skills/learn-up/
 ├── SKILL.md                  Core phased workflow
 ├── agents/openai.yaml        Codex/ChatGPT display and invocation policy
-├── references/               Intake, sources, schema, backend, frontend, and video guidance
-└── assets/                   Reusable app components, styles, icons, and scripts
+├── references/               Intake, sources, schema, backend, frontend, video, and transfer guidance
+└── assets/                   Reusable app components, styles, icons, and deterministic transfer code
 ```
 
 Detailed files load only when the agent reaches the relevant phase, keeping the initial context
