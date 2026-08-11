@@ -21,12 +21,14 @@ a local app around that syllabus.
 - A local React + FastAPI study app, with no external database to configure.
 - A syllabus mapped to explicit objectives, so lessons and questions stay on scope.
 - Lessons in the language you choose, even when the strongest sources are in another language.
-- Quizzes that explain every option—not only the correct answer.
+- Quizzes and mock exams with one-based question numbering that explain every option—not only the
+  correct answer.
 - Optional hands-on labs, mock exams, exam strategy, badges, and readiness tracking.
 - Select-to-ask Q&A powered by your existing Claude or Codex login, or by an OpenHands-compatible
   hosted/local model.
 - Optional Gemini Notebook video summaries, generated one lesson at a time.
-- Multiple independent subjects in the same app.
+- Multiple independent subjects in the same app, selected from a branded topic picker with a
+  persistent logo link back home.
 - Secure topic export/import archives for sharing lessons, quizzes, Q&A, About records, and videos
   between compatible learn-up installations.
 - A complete per-topic About page showing app version, questionnaire/configuration answers, source

@@ -80,6 +80,10 @@ Keep `main.py` importing `app.main:app`.
 - Type-annotate Python; TypeScript strict on the frontend.
 - Do not add unnecessary comments or inline documentation.
 - Enums stored as strings, validated in Python against `StrEnum`.
+- Keep `/learn-up-logo.webp` visible above the home topic picker and as the `TopBar` home link to
+  `/`; do not regenerate, recolor, or replace the canonical app-wide mark per topic.
+- Number learner-facing drill, mock, strategy-drill, and review questions from 1. Keep internal
+  array indexes, API positions, IDs, and submission/navigation state unchanged.
 
 ## 5. Content-correctness rules
 

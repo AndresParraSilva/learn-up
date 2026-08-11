@@ -102,3 +102,49 @@ def test_topic_transfer_assets_are_complete() -> None:
     }
 
     assert all((SKILL_ROOT / relative).is_file() for relative in expected)
+
+
+def test_generated_frontend_uses_canonical_logo() -> None:
+    skill = read_skill_file("SKILL.md")
+    frontend = read_skill_file("references/frontend.md")
+    styles = read_skill_file("assets/index.css")
+    agents_template = read_skill_file("assets/agents.template.md")
+    logo = SKILL_ROOT / "assets/learn-up-logo.webp"
+
+    logo_bytes = logo.read_bytes()
+    assert logo_bytes.startswith(b"RIFF")
+    assert logo_bytes[8:12] == b"WEBP"
+    assert (
+        "`assets/learn-up-logo.webp` → `frontend/public/learn-up-logo.webp` **verbatim**"
+        in skill
+    )
+    assert (
+        "assets/learn-up-logo.webp      → frontend/public/learn-up-logo.webp"
+        in frontend
+    )
+    assert 'className="home-logo" src="/learn-up-logo.webp" alt="learn-up"' in frontend
+    assert (
+        'className="topbar__mark" to="/" aria-label="Back to topic picker"' in frontend
+    )
+    assert 'className="topbar__logo" src="/learn-up-logo.webp" alt=""' in frontend
+    assert ".home-logo {" in styles
+    assert ".topbar__logo {" in styles
+    assert "`TopBar` home link" in agents_template
+
+
+def test_drill_and_mock_question_labels_are_one_based() -> None:
+    frontend = read_skill_file("references/frontend.md")
+    agents_template = read_skill_file("assets/agents.template.md")
+
+    assert "Number every learner-facing question from 1, never 0" in frontend
+    assert "Question {currentIndex + 1} of {questions.length}" in frontend
+    assert "`{index + 1}` inside every `.progress-nav__item`" in frontend
+    assert "drill, mock, strategy-drill, and review question headings" in frontend
+    assert (
+        "never expose a raw array index or raw `position` as the visible ordinal"
+        in frontend
+    )
+    assert (
+        "Number learner-facing drill, mock, strategy-drill, and review questions from 1"
+        in (agents_template)
+    )

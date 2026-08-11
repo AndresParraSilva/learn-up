@@ -58,11 +58,12 @@ undefined (reading 'map')` on first load.
 (Space Grotesk, IBM Plex Sans, IBM Plex Mono), sets a topic-neutral `<title>` like "learn-up", and
 uses the canonical favicon assets below.
 
-## Favicon and app icon
+## Logo, favicon, and app icon
 
 For a **NEW-APP** run, copy these assets verbatim:
 
 ```
+assets/learn-up-logo.webp      → frontend/public/learn-up-logo.webp
 assets/favicon.ico            → frontend/public/favicon.ico
 assets/favicon-32.png         → frontend/public/favicon-32.png
 assets/favicon-512.png        → frontend/public/favicon-512.png
@@ -79,9 +80,8 @@ Add these tags inside `frontend/index.html`'s `<head>`, after the viewport meta 
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 ```
 
-The open-book-and-three-fruit-tree mark represents self-directed learning across diverse topics.
-Keep it topic-neutral: an **ADD-TOPIC** run must not regenerate, retheme, or replace these app-wide
-assets.
+The book-and-fruit-tree mark represents self-directed learning across diverse topics. Keep it
+topic-neutral: an **ADD-TOPIC** run must not regenerate, retheme, or replace these app-wide assets.
 
 ## Routing (`src/App.tsx`)
 
@@ -119,7 +119,7 @@ update ever helps, because the tree shape itself is wrong. Structure the routes 
 <Routes>
   <Route element={<AppShell />}>
     <Route index element={<HomePage />} />{" "}
-    {/* no topic yet — TopBar renders wordmark only */}
+    {/* no topic yet — TopBar renders the linked logo only */}
     <Route path="*" element={<NotFoundPage />} />
   </Route>
   <Route path="t/:topicSlug" element={<TopicLayout />}>
@@ -153,6 +153,9 @@ just has `undefined` for `body_markdown` etc., so the page has nothing to show a
 
 ## HomePage — the topic picker (new vs. template)
 
+- Renders the canonical logo above the picker with
+  `<img className="home-logo" src="/learn-up-logo.webp" alt="learn-up" />`. Use this exact public
+  path; do not import, regenerate, recolor, or substitute a topic-specific image.
 - Fetches `GET /api/topics`. Renders each topic as a `.panel` card: name, description, and progress
   (overall_ready_pct) with a "Start / Continue" link to `/t/:slug`.
 - If there's exactly **one** topic, redirect straight into it (so a single-topic install feels like
@@ -167,9 +170,12 @@ just has `undefined` for `body_markdown` etc., so the page has nothing to show a
 
 ## TopBar
 
-- Wordmark links to `/` (the picker). When inside a topic, it also shows the topic name and the
-  in-topic nav (Lessons / Labs? / Strategy? / Badges / About), each link scoped to `/t/:topicSlug/…`.
-  Hide Labs/Strategy links when those modules are disabled for the topic.
+- The logo is the home control and always links to `/` (the topic picker). Render it as
+  `<Link className="topbar__mark" to="/" aria-label="Back to topic picker"><img className="topbar__logo" src="/learn-up-logo.webp" alt="" /></Link>`.
+  Keep the image's `alt` empty because the link already has an accessible name. Do not render a
+  text-only wordmark in its place. When inside a topic, also show the topic name and the in-topic nav
+  (Lessons / Labs? / Strategy? / Badges / About), each link scoped to `/t/:topicSlug/…`. Hide
+  Labs/Strategy links when those modules are disabled for the topic.
 - The topic name span must use `className="mono topbar__topic"`, **not** the generic `.muted`
   utility — `.muted` is `var(--ink-soft)`, tuned for the light `--paper` background, and reads as
   near-invisible low-contrast text against the topbar's dark `--ink` background. `.topbar__topic`
@@ -241,6 +247,13 @@ just has `undefined` for `body_markdown` etc., so the page has nothing to show a
 - **QuizPage / MockPage** — one question at a time; submit → immediate feedback (correct/incorrect +
   every choice's explanation, see "Grading feedback" below). Mock is timed to the topic's
   `assessment_minutes` and submits each answer once. On finish → summary + link to ReviewPage.
+  **Number every learner-facing question from 1, never 0.** Derive display ordinals from the sorted
+  question array's index: render `Question {currentIndex + 1} of {questions.length}` for the current
+  counter and `{index + 1}` inside every `.progress-nav__item`. Use the same `index + 1` rule for
+  drill, mock, strategy-drill, and review question headings and accessible labels. Keep React array
+  indexes, API `position` values, question IDs, answer submission, and navigation state in their
+  existing internal representation; never mutate those values merely to make their labels
+  one-based, and never expose a raw array index or raw `position` as the visible ordinal.
   QuizPage's title is `attempt.label` (backend-computed, see `AttemptOut.label` in
   `references/backend.md`) — not a static "Drill" string — so it reads e.g. "Domain drill:
   Foundations & Architecture" or "Practice: What OpenHands Is and When to Use It". `QuizRunner`'s

@@ -28,8 +28,9 @@ the whole build in your head; pull each reference in as you reach its phase.
    non-negotiable and is the reason the `sources/` folder exists. Resolving it into a real video is
    user-paced and per-lesson (never bulk-generated), via one of four paths (an in-app button being
    the default) — see `references/notebooklm-automation.md`.
-5. **Reuse the design system and brand assets verbatim.** Copy `assets/index.css` and the four
-   favicon/app-icon assets — do not re-invent the styling or topic-neutral learn-up mark.
+5. **Reuse the design system and brand assets verbatim.** Copy `assets/index.css`,
+   `assets/learn-up-logo.webp`, and the four favicon/app-icon assets — do not re-invent the styling
+   or topic-neutral learn-up mark.
 6. **DuckDB, not Postgres.** Synchronous SQLAlchemy + `duckdb_engine`. See `references/tech-stack.md`.
 7. **Source quality sets the ceiling.** Organize, explain, and test the supplied evidence; never
    turn weak, stale, incomplete, or contradictory material into confident claims. Prefer primary
@@ -144,11 +145,12 @@ the raw placeholder text until something rewrites it. See `references/notebooklm
 
 - **NEW-APP:** build the repo per `references/tech-stack.md`, `references/backend.md`,
   `references/frontend.md`, `references/ui-design.md`. Copy `assets/index.css` verbatim into
-  `frontend/src/index.css`. Copy `assets/favicon.ico`, `assets/favicon-32.png`,
-  `assets/favicon-512.png`, and `assets/apple-touch-icon.png` verbatim into `frontend/public/`, then
-  add the canonical favicon and theme-color tags from `references/frontend.md` to
-  `frontend/index.html`. Copy `assets/gitignore.template` to `.gitignore` at the repo root, then run
-  `git init`. Do **not** make an initial commit — leave that for the user to review and do themselves.
+  `frontend/src/index.css`. Copy `assets/learn-up-logo.webp`, `assets/favicon.ico`,
+  `assets/favicon-32.png`, `assets/favicon-512.png`, and `assets/apple-touch-icon.png` verbatim into
+  `frontend/public/`, then add the canonical favicon and theme-color tags from
+  `references/frontend.md` to `frontend/index.html`. Copy `assets/gitignore.template` to
+  `.gitignore` at the repo root, then run `git init`. Do **not** make an initial commit — leave that
+  for the user to review and do themselves.
   Create root `ABOUT.md` and its About API/page per `references/about.md`. Create the generated
   repo's own `AGENTS.md` by copying `assets/agents.template.md` rather than writing one from memory.
   Replace `<app_version>` with `1.0` and `<faq_llm_backend>` with the intake-selected backend, remove
@@ -276,6 +278,9 @@ dev -- --port <port>`. Confirm `uv run uvicorn ...` works with **zero env-var ov
 
 - `assets/index.css` → `frontend/src/index.css` **verbatim** (the whole design system, incl. the
   `.video-placeholder` call-out). Optionally retheme only the color tokens at the top per topic.
+- `assets/learn-up-logo.webp` → `frontend/public/learn-up-logo.webp` **verbatim**. Render it on the
+  home topic picker and as `TopBar`'s linked home mark exactly as specified in
+  `references/frontend.md`. Preserve this app-wide asset on ADD-TOPIC runs.
 - `assets/favicon.ico`, `assets/favicon-32.png`, `assets/favicon-512.png`, and
   `assets/apple-touch-icon.png` → `frontend/public/` **verbatim**. These are the topic-neutral
   learn-up book-and-fruit-tree mark; wire all four into `frontend/index.html` exactly as shown in

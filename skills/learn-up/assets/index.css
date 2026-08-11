@@ -245,6 +245,14 @@ img {
 }
 
 /* ---------------------------------------------------------------------- */
+/* Brand                                                                   */
+/* ---------------------------------------------------------------------- */
+.home-logo {
+  width: clamp(8rem, 28vw, 12rem);
+  margin: 0 auto 2rem;
+}
+
+/* ---------------------------------------------------------------------- */
 /* Top bar                                                                 */
 /* ---------------------------------------------------------------------- */
 .topbar {
@@ -270,16 +278,16 @@ img {
   flex-wrap: wrap;
 }
 .topbar__mark {
-  font-family: var(--display);
-  font-weight: 600;
-  font-size: 0.95rem;
-  letter-spacing: 0.02em;
-  color: var(--paper);
+  display: inline-flex;
+  flex: none;
+  align-items: center;
   text-decoration: none;
-  white-space: nowrap;
 }
-.topbar__mark span {
-  color: var(--amber);
+.topbar__logo {
+  width: clamp(2.25rem, 7vw, 2.75rem);
+  height: clamp(2.25rem, 7vw, 2.75rem);
+  margin: 0;
+  object-fit: cover;
 }
 .topbar__topic {
   color: #b9c9d8;

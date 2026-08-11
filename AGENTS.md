@@ -25,9 +25,9 @@ Preserve these repository guardrails:
 
 This repository is a source distribution, not an application runtime.
 
-- Portable plugin metadata: root `plugin.json`, currently version `0.2.0`, targeting Agent Plugins
+- Portable plugin metadata: root `plugin.json`, currently version `0.3.0`, targeting Agent Plugins
   Specification 1.0.0 and its closed manifest schema.
-- Codex plugin metadata: `.codex-plugin/plugin.json`, also version `0.2.0`, plus Codex interface
+- Codex plugin metadata: `.codex-plugin/plugin.json`, also version `0.3.0`, plus Codex interface
   metadata in `skills/learn-up/agents/openai.yaml`.
 - Canonical skill: Markdown with YAML frontmatter in `skills/learn-up/SKILL.md`; detailed Markdown
   guidance is loaded progressively from `skills/learn-up/references/`.
@@ -117,7 +117,7 @@ detailed skill guidance in the matching reference, Codex-only UI metadata in
 
 The repository uses pytest and pytest-cov, configured in `pyproject.toml`. Tests live under
 `tests/`. The default run measures statement and branch coverage for `learn_up_installer/`, writes
-`coverage.json`, and fails below 90%. The current verified result is 62 passing tests and 97%
+`coverage.json`, and fails below 90%. The current verified result is 64 passing tests and 97%
 displayed coverage (96.55% total) on Python 3.14.6.
 
 Installer tests must use pytest's `tmp_path` and `monkeypatch` fixtures so they never write to the
