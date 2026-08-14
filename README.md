@@ -4,6 +4,13 @@
 
 Turn material you trust into a personal study web app—with lessons, explained quizzes, practical
 exercises, spaced repetition, progress tracking, and optional Gemini Notebook video summaries.
+The experience is gamified with XP, streaks, badges, and visible progress. When something does not
+click, select it and ask the AI anything you do not understand, right where you are studying, and
+the answer is added to the lesson.
+
+You retain total control of both the local app and its content. Ask your coding agent to customize
+the experience however you like—“add a stopwatch to the quizzes”—or to change, expand, or refocus
+the material—“add more labs about the last topic.”
 
 `learn-up` is an Agent Skill for Claude Code and Codex, packaged for portable discovery under
 [Agent Plugins Specification 1.0.0](https://github.com/agentplugins/agent-plugins-spec/blob/main/spec/1.0.0.md).
