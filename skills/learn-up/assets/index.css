@@ -948,7 +948,8 @@ summary {
   position: fixed;
   z-index: 41;
   width: min(420px, 90vw);
-  transform: translate(-50%, 0.6rem);
+  max-height: calc(100dvh - 1.5rem);
+  overflow-y: auto;
 }
 .selection-ask__quote {
   font-size: 0.85rem;

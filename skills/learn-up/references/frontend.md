@@ -372,6 +372,13 @@ mechanics this drives on the backend. `FaqEntry.selected_text: string | null` ri
 so the newly-answered passage can be highlighted in the body immediately — see "Link a FAQ answer's
 source passage back into the body" below.
 
+The asset also measures the open panel and keeps it within the visual viewport. It prefers placing
+the panel below the selection, moves it above when the lower edge lacks space, clamps both axes to a
+small viewport margin, and recalculates on viewport or panel-size changes. On a short viewport, the
+panel scrolls internally so its action buttons remain reachable. Preserve this positioning behavior
+when changing the component; fixed selection coordinates alone can put the buttons outside the
+visible window.
+
 ### AI-generated content disclaimer
 
 Every page that renders LLM-generated prose ends with a `<p className="disclaimer">` footer: _"This

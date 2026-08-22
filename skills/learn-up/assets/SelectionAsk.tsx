@@ -1,5 +1,14 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import type { AskOutcome, FaqEntry } from "../api/types";
+
+const VIEWPORT_MARGIN = 12;
+const PANEL_GAP = 8;
 
 interface SelectionAskProps {
   containerRef: RefObject<HTMLElement | null>;
@@ -14,8 +23,20 @@ interface SelectionAskProps {
 
 interface TriggerState {
   x: number;
-  y: number;
+  top: number;
+  bottom: number;
   text: string;
+}
+
+interface PanelLayout {
+  left: number;
+  top: number;
+  maxWidth: number;
+  maxHeight: number;
+}
+
+function clamp(value: number, minimum: number, maximum: number) {
+  return Math.min(Math.max(value, minimum), maximum);
 }
 
 export default function SelectionAsk({
@@ -31,6 +52,7 @@ export default function SelectionAsk({
   const [askingFullSources, setAskingFullSources] = useState(false);
   const [needsFullSourceConfirm, setNeedsFullSourceConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [panelLayout, setPanelLayout] = useState<PanelLayout | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,14 +80,93 @@ export default function SelectionAsk({
         return;
       }
       const rect = range.getBoundingClientRect();
-      setTrigger({ x: rect.left + rect.width / 2, y: rect.top, text });
+      setTrigger({
+        x: rect.left + rect.width / 2,
+        top: rect.top,
+        bottom: rect.bottom,
+        text,
+      });
     }
     document.addEventListener("selectionchange", onSelectionChange);
     return () =>
       document.removeEventListener("selectionchange", onSelectionChange);
   }, [containerRef, panelOpen]);
 
+  useLayoutEffect(() => {
+    if (!panelOpen || !trigger) return;
+
+    const panel = panelRef.current;
+    if (!panel) {
+      throw new Error("SelectionAsk panel is open but not mounted");
+    }
+
+    function positionPanel() {
+      const visualViewport = window.visualViewport;
+      const viewportLeft = visualViewport?.offsetLeft ?? 0;
+      const viewportTop = visualViewport?.offsetTop ?? 0;
+      const viewportWidth = visualViewport?.width ?? window.innerWidth;
+      const viewportHeight = visualViewport?.height ?? window.innerHeight;
+      const viewportRight = viewportLeft + viewportWidth;
+      const viewportBottom = viewportTop + viewportHeight;
+      const maxWidth = Math.max(0, viewportWidth - VIEWPORT_MARGIN * 2);
+      const maxHeight = Math.max(0, viewportHeight - VIEWPORT_MARGIN * 2);
+      const rect = panel.getBoundingClientRect();
+      const panelWidth = Math.min(rect.width, maxWidth);
+      const panelHeight = Math.min(rect.height, maxHeight);
+      const maximumLeft = Math.max(
+        viewportLeft + VIEWPORT_MARGIN,
+        viewportRight - panelWidth - VIEWPORT_MARGIN,
+      );
+      const maximumTop = Math.max(
+        viewportTop + VIEWPORT_MARGIN,
+        viewportBottom - panelHeight - VIEWPORT_MARGIN,
+      );
+      const left = clamp(
+        trigger.x - panelWidth / 2,
+        viewportLeft + VIEWPORT_MARGIN,
+        maximumLeft,
+      );
+      const belowSelection = trigger.bottom + PANEL_GAP;
+      const aboveSelection = trigger.top - panelHeight - PANEL_GAP;
+      const preferredTop =
+        belowSelection + panelHeight <= viewportBottom - VIEWPORT_MARGIN
+          ? belowSelection
+          : aboveSelection;
+      const top = clamp(
+        preferredTop,
+        viewportTop + VIEWPORT_MARGIN,
+        maximumTop,
+      );
+      const nextLayout = { left, top, maxWidth, maxHeight };
+
+      setPanelLayout((current) =>
+        current &&
+        current.left === nextLayout.left &&
+        current.top === nextLayout.top &&
+        current.maxWidth === nextLayout.maxWidth &&
+        current.maxHeight === nextLayout.maxHeight
+          ? current
+          : nextLayout,
+      );
+    }
+
+    positionPanel();
+    const resizeObserver = new ResizeObserver(positionPanel);
+    resizeObserver.observe(panel);
+    window.addEventListener("resize", positionPanel);
+    window.visualViewport?.addEventListener("resize", positionPanel);
+    window.visualViewport?.addEventListener("scroll", positionPanel);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", positionPanel);
+      window.visualViewport?.removeEventListener("resize", positionPanel);
+      window.visualViewport?.removeEventListener("scroll", positionPanel);
+    };
+  }, [panelOpen, trigger]);
+
   function openPanel() {
+    setPanelLayout(null);
     setPanelOpen(true);
     setQuestion("");
     setStreamedAnswer("");
@@ -74,6 +175,7 @@ export default function SelectionAsk({
   }
 
   function closePanel() {
+    setPanelLayout(null);
     setPanelOpen(false);
     setTrigger(null);
     window.getSelection()?.removeAllRanges();
@@ -121,7 +223,7 @@ export default function SelectionAsk({
       <button
         type="button"
         className="selection-ask__trigger"
-        style={{ left: trigger.x, top: trigger.y - 8 }}
+        style={{ left: trigger.x, top: trigger.top - PANEL_GAP }}
         onMouseDown={(event) => event.preventDefault()}
         onClick={openPanel}
       >
@@ -133,7 +235,13 @@ export default function SelectionAsk({
   return (
     <div
       className="panel selection-ask__panel"
-      style={{ left: trigger.x, top: trigger.y - 8 }}
+      style={{
+        left: panelLayout?.left ?? 0,
+        top: panelLayout?.top ?? 0,
+        maxWidth: panelLayout?.maxWidth,
+        maxHeight: panelLayout?.maxHeight,
+        visibility: panelLayout ? "visible" : "hidden",
+      }}
       ref={panelRef}
     >
       <p className="selection-ask__quote">{trigger.text}</p>

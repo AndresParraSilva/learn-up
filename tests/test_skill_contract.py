@@ -132,6 +132,24 @@ def test_generated_frontend_uses_canonical_logo() -> None:
     assert "`TopBar` home link" in agents_template
 
 
+def test_selection_ask_panel_stays_inside_visual_viewport() -> None:
+    component = read_skill_file("assets/SelectionAsk.tsx")
+    frontend = read_skill_file("references/frontend.md")
+    styles = read_skill_file("assets/index.css")
+
+    assert "useLayoutEffect" in component
+    assert "trigger.bottom + PANEL_GAP" in component
+    assert "trigger.top - panelHeight - PANEL_GAP" in component
+    assert "window.visualViewport" in component
+    assert "new ResizeObserver(positionPanel)" in component
+    assert 'window.addEventListener("resize", positionPanel)' in component
+    assert 'visibility: panelLayout ? "visible" : "hidden"' in component
+    assert "max-height: calc(100dvh - 1.5rem);" in styles
+    assert "overflow-y: auto;" in styles
+    assert "keeps it within the visual viewport" in frontend
+    assert "action buttons remain reachable" in frontend
+
+
 def test_drill_and_mock_question_labels_are_one_based() -> None:
     frontend = read_skill_file("references/frontend.md")
     agents_template = read_skill_file("assets/agents.template.md")
