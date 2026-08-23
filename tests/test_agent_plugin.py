@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -12,12 +13,28 @@ from scripts.validate_agent_plugin import ALLOWED_FIELDS, SCHEMA_URI, validate_m
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PORTABLE_MANIFEST = REPO_ROOT / "plugin.json"
 CODEX_MANIFEST = REPO_ROOT / ".codex-plugin/plugin.json"
+PROJECT_MANIFEST = REPO_ROOT / "pyproject.toml"
+LOCKFILE = REPO_ROOT / "uv.lock"
 
 
 def load_manifest(path: Path) -> dict[str, object]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     assert isinstance(payload, dict)
     return payload
+
+
+def read_project_version(path: Path, package_name: str | None = None) -> str:
+    content = path.read_text(encoding="utf-8")
+    if package_name is None:
+        pattern = r'^\[project\]\n(?:.*\n)*?version = "([^"]+)"$'
+    else:
+        pattern = (
+            rf'^\[\[package\]\]\nname = "{re.escape(package_name)}"\n'
+            r'version = "([^"]+)"$'
+        )
+    match = re.search(pattern, content, flags=re.MULTILINE)
+    assert match is not None
+    return match.group(1)
 
 
 def test_portable_manifest_conforms_to_agent_plugins_1_0_0() -> None:
@@ -47,6 +64,18 @@ def test_portable_and_codex_manifests_share_release_metadata() -> None:
     }
     assert {"skills", "interface"} <= set(codex)
     assert {"skills", "interface"}.isdisjoint(portable)
+
+
+def test_release_version_is_synchronized() -> None:
+    portable = load_manifest(PORTABLE_MANIFEST)
+    codex = load_manifest(CODEX_MANIFEST)
+
+    assert {
+        portable["version"],
+        codex["version"],
+        read_project_version(PROJECT_MANIFEST),
+        read_project_version(LOCKFILE, "learn-up-skill"),
+    } == {"0.3.1"}
 
 
 def test_portable_skill_uses_fixed_agent_plugins_discovery_layout() -> None:

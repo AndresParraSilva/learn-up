@@ -10,7 +10,7 @@ the answer is added to the lesson.
 
 You retain total control of both the local app and its content. Ask your coding agent to customize
 the experience however you like—“add a stopwatch to the quizzes”—or to change, expand, or refocus
-the material—“add more labs about the last topic.”
+the material—“reset my progress to start over,” or “add more labs about the last topic.”
 
 `learn-up` is an Agent Skill for Claude Code and Codex, packaged for portable discovery under
 [Agent Plugins Specification 1.0.0](https://github.com/agentplugins/agent-plugins-spec/blob/main/spec/1.0.0.md).
@@ -35,7 +35,7 @@ a local app around that syllabus.
   hosted/local model.
 - Optional Gemini Notebook video summaries, generated one lesson at a time.
 - Multiple independent subjects in the same app, selected from a branded topic picker with a
-  persistent logo link back home.
+  persistent link back home.
 - Secure topic export/import archives for sharing lessons, quizzes, Q&A, About records, and videos
   between compatible learn-up installations.
 - A complete per-topic About page showing app version, questionnaire/configuration answers, source
@@ -119,6 +119,51 @@ To install only for one project:
 python install.py --agent codex --scope project --project-dir /path/to/project
 python install.py --agent claude-code --scope project --project-dir /path/to/project
 ```
+
+## Upgrade
+
+To let your coding agent update a user-level installation from GitHub, paste:
+
+```text
+Update my installed learn-up plugin or skill to the latest release from
+https://github.com/AndresParraSilva/learn-up. Preserve the existing installation as a backup,
+verify the updated skill, and tell me when I should start a new thread.
+```
+
+For a manual user-level upgrade from an existing clone:
+
+```bash
+cd /path/to/learn-up
+git pull --ff-only
+
+# Codex
+python install.py --agent codex --force
+
+# Claude Code
+python install.py --agent claude-code --force
+```
+
+For a project-scoped installation, use the same updated clone and identify the target project:
+
+```bash
+python install.py --agent codex --scope project --project-dir /path/to/project --force
+python install.py --agent claude-code --scope project --project-dir /path/to/project --force
+```
+
+Once `learn-up` is accepted into the OpenAI-curated Codex Marketplace, refresh that marketplace and
+reinstall the plugin with:
+
+```bash
+codex plugin marketplace upgrade openai-curated
+codex plugin add learn-up@openai-curated
+```
+
+Start a new Codex or Claude Code thread after upgrading so the client loads the refreshed skill.
+Other Agent Plugins clients should use their documented refresh or reinstall command.
+
+Upgrading the plugin updates future skill runs. It does not automatically patch files already
+copied into an existing generated learn-up app; ask your coding agent to update that app explicitly
+when you want it to adopt newer frontend, backend, or tooling assets.
 
 ## Create your first study app
 
