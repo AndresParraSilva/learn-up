@@ -22,6 +22,9 @@ a local app around that syllabus.
 > `learn-up` can structure and explain source material; it cannot make weak material reliable.
 > Results depend on the authority, completeness, and freshness of the sources you provide. Review
 > generated content before relying on it for an exam, professional decision, or safety-critical use.
+> The coding model used to generate the application also has a major effect on result quality.
+> Use at least GPT-5.6 Sol with high reasoning effort or Claude Sonnet 5 with high reasoning effort;
+> less capable models can produce materially weaker applications and learning content.
 
 ## What it builds
 
@@ -43,14 +46,14 @@ a local app around that syllabus.
 
 ## Real uses
 
-These are projects the author has used `learn-up` for, not benchmark claims.
+These are projects the author has used `learn-up` for.
 
-| Topic                 | What it demonstrated                                                                                                                                                                                     |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SnowPro Core COF-C03  | Certification-blueprint coverage, mock questions, and study strategy. Results were mixed when the supplied preparation material was uneven—an important limitation, not something the skill should hide. |
-| OpenHands             | Turning changing technical documentation into structured lessons and labs.                                                                                                                               |
-| GitHub Actions        | Practical, workflow-oriented learning with exercises and explained questions.                                                                                                                            |
-| Armonía y Composición | Multilingual learning: authoritative material and authored lessons do not have to use the same language.                                                                                                 |
+| Topic                 | What it demonstrated                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SnowPro Core COF-C03  | Certification-blueprint coverage, mock questions, and study strategy. Results were mixed when the supplied preparation material was uneven—an important limitation. |
+| OpenHands             | Turning changing technical documentation into structured lessons and labs.                                                                                          |
+| GitHub Actions        | Practical, workflow-oriented learning with exercises and explained questions.                                                                                       |
+| Armonía y Composición | Multilingual learning: authoritative material and authored lessons do not have to use the same language.                                                            |
 
 ## Before you start
 
