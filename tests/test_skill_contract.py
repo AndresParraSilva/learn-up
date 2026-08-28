@@ -166,3 +166,41 @@ def test_drill_and_mock_question_labels_are_one_based() -> None:
         "Number learner-facing drill, mock, strategy-drill, and review questions from 1"
         in (agents_template)
     )
+
+
+def test_localhost_security_stack_is_mandated() -> None:
+    backend = read_skill_file("references/backend.md")
+    frontend = read_skill_file("references/frontend.md")
+    skill = read_skill_file("SKILL.md")
+    tech_stack = read_skill_file("references/tech-stack.md")
+    agents_template = read_skill_file("assets/agents.template.md")
+    topic_transfer_ts = read_skill_file("assets/topicTransfer.ts")
+    security_md = (REPO_ROOT / "SECURITY.md").read_text(encoding="utf-8")
+
+    assert "TrustedHostMiddleware" in backend
+    assert "allowed_hosts" in backend
+    assert "Sec-Fetch-Site: cross-site" in backend
+    assert "X-LearnUp-Token" in backend
+    assert "/api/auth/token" in backend
+
+    assert "X-LearnUp-Token" in frontend
+    assert "/api/auth/token" in frontend
+
+    assert "--host 127.0.0.1" in skill
+    assert "TrustedHostMiddleware" in skill
+    assert "X-LearnUp-Token" in skill
+
+    assert "--host 127.0.0.1" in tech_stack
+    assert "TrustedHostMiddleware" in tech_stack
+
+    assert "--host 127.0.0.1" in agents_template
+    assert "TrustedHostMiddleware" in agents_template
+    assert "X-LearnUp-Token" in agents_template
+
+    assert "setApiToken" in topic_transfer_ts
+    assert "getApiToken" in topic_transfer_ts
+    assert "X-LearnUp-Token" in topic_transfer_ts
+
+    assert "TrustedHostMiddleware" in security_md
+    assert "X-LearnUp-Token" in security_md
+    assert "127.0.0.1" in security_md

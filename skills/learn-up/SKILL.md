@@ -144,10 +144,14 @@ the raw placeholder text until something rewrites it. See `references/notebooklm
 ## Phase 5 — Scaffold or extend the app
 
 - **NEW-APP:** build the repo per `references/tech-stack.md`, `references/backend.md`,
-  `references/frontend.md`, `references/ui-design.md`. Copy `assets/index.css` verbatim into
-  `frontend/src/index.css`. Copy `assets/learn-up-logo.webp`, `assets/favicon.ico`,
-  `assets/favicon-32.png`, `assets/favicon-512.png`, and `assets/apple-touch-icon.png` verbatim into
-  `frontend/public/`, then add the canonical favicon and theme-color tags from
+  `references/frontend.md`, `references/ui-design.md`. Configure `app/main.py` with the mandatory
+  localhost security middleware stack (`TrustedHostMiddleware` for loopback hosts, `Sec-Fetch-Site:
+cross-site` and foreign-origin rejection, and per-run `X-LearnUp-Token` validation) per
+  `references/backend.md`. Configure the frontend API client to retrieve the session token on initial
+  load and send `X-LearnUp-Token` on all API requests per `references/frontend.md`. Copy
+  `assets/index.css` verbatim into `frontend/src/index.css`. Copy `assets/learn-up-logo.webp`,
+  `assets/favicon.ico`, `assets/favicon-32.png`, `assets/favicon-512.png`, and `assets/apple-touch-icon.png`
+  verbatim into `frontend/public/`, then add the canonical favicon and theme-color tags from
   `references/frontend.md` to `frontend/index.html`. Copy `assets/gitignore.template` to
   `.gitignore` at the repo root, then run `git init`. Do **not** make an initial commit — leave that
   for the user to review and do themselves.
@@ -238,7 +242,7 @@ Per the generated `README.md`:
    probe (see `references/tech-stack.md`). If so, do
    not kill it — pick free ports instead, update `frontend/vite.config.ts`'s proxy `target` to match
    the backend port you actually used, and report the real ports to the user (don't assume 8011/5173).
-6. `uv run uvicorn app.main:app --reload --port <port>` and, from `frontend/`, `npm install && npm run
+6. `uv run uvicorn app.main:app --reload --host 127.0.0.1 --port <port>` and, from `frontend/`, `npm install && npm run
 dev -- --port <port>`. Confirm `uv run uvicorn ...` works with **zero env-var overrides** — if it
    needs `LEARNUP_DATABASE_URL` (or any prefix) set manually to avoid a collision, that's a bug in
    `app/config.py`'s env-prefix setup, fix it rather than documenting the workaround.
@@ -249,6 +253,8 @@ dev -- --port <port>`. Confirm `uv run uvicorn ...` works with **zero env-var ov
    endpoint when used) after installing the `openhands` group. If the selected backend cannot answer,
    report its concrete missing dependency, executable, credential, model, or endpoint; do not switch
    backends silently. See `references/backend.md`'s "Select-to-ask FAQ".
+   Also smoke-test localhost security rejection: confirm `curl -H "Host: attacker.com" http://127.0.0.1:<port>/api/health`
+   returns HTTP 400 Bad Request, and `/api/topics` without `X-LearnUp-Token` returns HTTP 401 Unauthorized.
    Report the URLs. If validation fails, fix the content gap it names — do not weaken the validator.
 8. Fetch each topic's `/api/t/<topic_slug>/about`, open its About page, and compare the displayed app
    version, questionnaire/configuration values, source entries, and change histories against the

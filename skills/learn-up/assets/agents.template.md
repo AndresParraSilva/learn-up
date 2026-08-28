@@ -31,7 +31,8 @@ topics) yields "GO".
 
 - **Language/runtime:** Python **3.12+**, managed with **`uv`**.
 - **App compatibility version:** `<app_version>` in `pyproject.toml`; use two-part `MAJOR.MINOR`.
-- **Backend:** FastAPI (sync path ops) serving a JSON API; uvicorn for dev.
+- **Backend:** FastAPI (sync path ops) serving a JSON API with loopback Host, Origin/Fetch-Metadata,
+  and token validation; uvicorn for dev.
 - **ORM/DB:** SQLAlchemy 2.x (**synchronous**) + **`duckdb_engine`**. Embedded **DuckDB** file
   `learn_up.duckdb`; all tables in schema **`learn`**. No async, no Alembic (schema via
   `Base.metadata.create_all`).
@@ -76,6 +77,10 @@ Keep `main.py` importing `app.main:app`.
 - **Fail loudly on unexpected input.** Raise on missing/malformed content, unknown enum values, bad
   types. The content **validator** must error on any objective missing lessons/questions and on any
   dangling objective/topic tag. No silent defaults.
+- **Localhost API security.** Bind uvicorn to `127.0.0.1`. In `app/main.py`, enforce
+  `TrustedHostMiddleware` for loopback hosts, reject `Sec-Fetch-Site: cross-site` and foreign `Origin`
+  headers, and validate the per-run `X-LearnUp-Token` on every `/api/*` endpoint (except
+  bootstrap/health). Never enable permissive CORS (`allow_origins=["*"]`) or Private Network Access.
 - **DuckDB is synchronous.** No async DB code. One uvicorn worker (single writer).
 - Type-annotate Python; TypeScript strict on the frontend.
 - Do not add unnecessary comments or inline documentation.
@@ -144,7 +149,7 @@ Keep `main.py` importing `app.main:app`.
 ## 8. Commands
 
 - Install/sync backend: `uv sync` · Add dep: `uv add PACKAGE`
-- Run backend (dev): `uv run uvicorn app.main:app --reload --port 8011`
+- Run backend (dev): `uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8011`
 - Seed content: `uv run python -m app.content.seed`
 - Validate coverage: `uv run python -m app.content.validate`
 - Export topic: `uv run python scripts/manage_topic_transfer.py export {slug} --output {archive.learnup.zip}`

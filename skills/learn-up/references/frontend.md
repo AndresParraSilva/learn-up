@@ -58,6 +58,44 @@ undefined (reading 'map')` on first load.
 (Space Grotesk, IBM Plex Sans, IBM Plex Mono), sets a topic-neutral `<title>` like "learn-up", and
 uses the canonical favicon assets below.
 
+## API client & session token (`src/api/client.ts`)
+
+All frontend API calls communicate with the loopback backend secured by the per-run token
+(`X-LearnUp-Token`). On initial app initialization, the frontend calls `GET /api/auth/token`
+(proxied by Vite to the backend) to obtain the session token, caches it in memory, and passes
+`X-LearnUp-Token: <token>` along with all subsequent API calls:
+
+```ts
+let cachedToken: string | null = null;
+
+export async function initApiToken(): Promise<string> {
+  if (cachedToken) return cachedToken;
+  const res = await fetch("/api/auth/token");
+  if (!res.ok) throw new Error("Failed to initialize API session token");
+  const data = (await res.json()) as { token: string };
+  cachedToken = data.token;
+  return data.token;
+}
+
+export function getApiToken(): string | null {
+  return cachedToken;
+}
+
+export async function apiFetch(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+): Promise<Response> {
+  const token = cachedToken ?? (await initApiToken());
+  const headers = new Headers(init.headers);
+  headers.set("X-LearnUp-Token", token);
+  return fetch(input, { ...init, headers });
+}
+```
+
+Components and helper modules (including `topicTransfer.ts`, `SelectionAsk.tsx`,
+`VideoGenerationPanel.tsx`) use `apiFetch` or attach `X-LearnUp-Token` from `getApiToken()` to all
+requests.
+
 ## Logo, favicon, and app icon
 
 For a **NEW-APP** run, copy these assets verbatim:

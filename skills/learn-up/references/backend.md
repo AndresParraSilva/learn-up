@@ -47,8 +47,68 @@ def get_session() -> Iterator[Session]:
 ```
 
 `app/main.py` creates the FastAPI app, calls `Base.metadata.create_all(engine)` on startup,
-includes routers, and exposes `GET /api/health` (`SELECT 1`). It also mounts a static `/media`
-directory for lesson videos — see "Media static mount" below.
+includes routers, exposes `GET /api/health` (`SELECT 1`), and configures the mandatory localhost
+security middleware stack. It also mounts a static `/media` directory for lesson videos — see
+"Media static mount" below.
+
+## Localhost security & origin/host validation stack
+
+Generated apps run locally and use a single default learner user (no user login/password system),
+but **must protect the loopback API against DNS rebinding, cross-origin data exfiltration, and
+drive-by browser requests from foreign websites**.
+
+In `app/main.py`, configure this mandatory multi-layer defense stack:
+
+### 1. Loopback Host header validation (`TrustedHostMiddleware`)
+
+Add Starlette/FastAPI `TrustedHostMiddleware` to reject any request carrying a foreign or
+attacker-controlled `Host` header (such as `Host: evil.com:8011` resulting from DNS rebinding):
+
+```python
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=[
+        "localhost",
+        "127.0.0.1",
+        "[::1]",
+        "testclient",
+        "localhost:*",
+        "127.0.0.1:*",
+        "[::1]:*",
+    ],
+)
+```
+
+Requests with unlisted `Host` headers fail immediately with `400 Bad Request`.
+
+### 2. Browser Origin & Fetch-Metadata validation middleware
+
+Add middleware (or an app-level base HTTP middleware) to validate browser-initiated calls:
+
+- **Fetch-Metadata:** If `Sec-Fetch-Site: cross-site` is present on any `/api/*` request, reject
+  immediately with `403 Forbidden`. Requests with `same-origin`, `same-site`, or `none` (non-browser
+  tools / direct top-level navigation) are permitted.
+- **Origin / Referer:** When an `Origin` header is present, verify that its origin matches allowed
+  loopback origins (`http://localhost:<frontend_port>`, `http://127.0.0.1:<frontend_port>`,
+  `http://[::1]:<frontend_port>`, and backend loopback origins). If a foreign `Origin` is present,
+  reject with `403 Forbidden`.
+- **No permissive CORS or PNA:** Do **not** add `CORSMiddleware` with `allow_origins=["*"]` or allow
+  arbitrary origins. Do not enable `Access-Control-Allow-Private-Network`.
+
+### 3. Per-run unguessable API token (`X-LearnUp-Token`)
+
+Generate an unguessable cryptographic token on backend startup (`secrets.token_urlsafe(32)`),
+stored in `app.state.api_token` (or read from `LEARNUP_API_TOKEN` if set in settings):
+
+- **Bootstrap endpoint:** Expose `GET /api/auth/token` returning `{"token": app.state.api_token}`.
+  This endpoint is strictly restricted: it requires the client to connect from loopback (`127.0.0.1` /
+  `::1`) and rejects `Sec-Fetch-Site: cross-site`. The local frontend calls this endpoint once on
+  initial startup to retrieve its session token.
+- **Header enforcement:** All `/api/*` requests (except `GET /api/health` and `GET /api/auth/token`)
+  must include header `X-LearnUp-Token: <token>`. Requests with missing or mismatched tokens are
+  rejected with `401 Unauthorized`.
 
 ## Media static mount (Gemini Notebook lesson videos)
 
@@ -80,6 +140,8 @@ Same shape as the template plus a **topics** router for the multi-topic picker. 
 routes take a topic via the path (`/api/t/{topic_slug}/…`) or a query/body `topic_slug`, so topics
 stay isolated. Recommended routers:
 
+- `app/api/auth.py` (or in `app/main.py`) → `GET /api/auth/token` — session token bootstrap for the
+  local frontend.
 - `app/api/topics.py` → prefix `/api/topics`
   - `GET  /api/topics` — list topics (slug, name, description, counts) for the home picker.
   - `GET  /api/topics/{slug}` — one topic's metadata + enabled modules.
@@ -137,7 +199,9 @@ topic_slug)` helper (note it takes `topic_slug`, not just the ORM row) computes 
   - `GET /lessons`, `GET /lessons/{slug}`, `POST /lessons/{slug}/read`, `GET /drill`,
     `POST /questions/{id}/check`, plus the FAQ routes.
 
-A single **default user** is used (create-on-first-use, tolerate the race). No auth.
+A single **default user** is used (create-on-first-use, tolerate the race). No multi-user login or
+password system is used, but all `/api/*` requests are secured by the localhost Host, Origin,
+Fetch-Metadata, and token validation stack specified above.
 
 ## Topic-transfer service and adapter
 

@@ -13,8 +13,9 @@ SQLAlchemy** (not async) — this is the one deliberate divergence from the temp
 ## Stack
 
 - **Language/runtime:** Python **3.12+**, managed with **`uv`** (`.python-version`, `pyproject.toml`).
-- **Backend:** FastAPI serving a JSON API; uvicorn for dev. Path operations are plain `def`
-  (FastAPI runs them in a threadpool) since the DB layer is synchronous.
+- **Backend:** FastAPI serving a JSON API with loopback `TrustedHostMiddleware`, `Sec-Fetch-Site`
+  and origin validation, and per-run `X-LearnUp-Token` enforcement; uvicorn for dev. Path
+  operations are plain `def` (FastAPI runs them in a threadpool) since the DB layer is synchronous.
 - **ORM/DB:** SQLAlchemy 2.x (**sync**) + **`duckdb_engine`**. Database is a single embedded file
   `learn_up.duckdb` at the repo root. All app tables live in the DuckDB schema **`learn`**.
 - **Migrations:** none needed for the embedded DB — create the schema + tables at startup via
@@ -120,7 +121,7 @@ enabled modules and correct every mismatch.
 
 - Sync backend deps: `uv sync`
 - Add backend dep: `uv add <pkg>`
-- Run backend (dev): `uv run uvicorn app.main:app --reload --port 8011`
+- Run backend (dev): `uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8011`
 - Seed content: `uv run python -m app.content.seed`
 - Validate coverage: `uv run python -m app.content.validate`
 - Export topic: `uv run python scripts/manage_topic_transfer.py export <slug> --output <file.learnup.zip>`
@@ -142,6 +143,6 @@ either server, use an available platform-native check: `ss -ltn` on Linux, `lsof
 Linux/macOS, `Get-NetTCPConnection -LocalPort <port>` in PowerShell, or a short Python `socket.bind`
 probe. Do not require a Unix-only command when the host is Windows.
 If it's taken by something that isn't this repo's own leftover process, **do not kill it** — pick a
-free port instead (e.g. `--port 8012` for uvicorn, `--port 5180 --strictPort` for `npm run dev`),
+free port instead (e.g. `--host 127.0.0.1 --port 8012` for uvicorn, `--port 5180 --strictPort` for `npm run dev`),
 update `frontend/vite.config.ts`'s proxy `target` to match the backend port you actually used, and
 report the real ports you launched on to the user instead of assuming the defaults.

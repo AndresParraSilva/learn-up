@@ -21,7 +21,10 @@ design.
 - The FAQ feature may send selected text and source excerpts to the configured LLM provider.
 - Automated Gemini Notebook videos use an unofficial third-party client for undocumented Google
   APIs. Its stored session cookies are sensitive credentials. Never commit or share them.
-- Generated `.env` files, DuckDB files, and videos are intentionally excluded from source control.
+- Generated apps bind to loopback (`127.0.0.1`) and enforce `TrustedHostMiddleware`, reject
+  cross-site Fetch-Metadata and foreign `Origin` headers, and validate a per-run API token
+  (`X-LearnUp-Token`) on all API endpoints to protect against DNS rebinding and cross-origin browser
+  requests.
 - Generated apps can import `.learnup.zip` topic archives, but recipients must still trust the
   sender and sources. The copied importer validates only regular Markdown, YAML, and MP4 in an
   isolated temporary directory, rejects unsafe archive structure and incompatible versions, and

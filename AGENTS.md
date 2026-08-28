@@ -25,9 +25,9 @@ Preserve these repository guardrails:
 
 This repository is a source distribution, not an application runtime.
 
-- Portable plugin metadata: root `plugin.json`, currently version `0.3.0`, targeting Agent Plugins
+- Portable plugin metadata: root `plugin.json`, currently version `0.3.2`, targeting Agent Plugins
   Specification 1.0.0 and its closed manifest schema.
-- Codex plugin metadata: `.codex-plugin/plugin.json`, also version `0.3.0`, plus Codex interface
+- Codex plugin metadata: `.codex-plugin/plugin.json`, also version `0.3.2`, plus Codex interface
   metadata in `skills/learn-up/agents/openai.yaml`.
 - Canonical skill: Markdown with YAML frontmatter in `skills/learn-up/SKILL.md`; detailed Markdown
   guidance is loaded progressively from `skills/learn-up/references/`.

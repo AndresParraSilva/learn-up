@@ -75,7 +75,7 @@ def test_release_version_is_synchronized() -> None:
         codex["version"],
         read_project_version(PROJECT_MANIFEST),
         read_project_version(LOCKFILE, "learn-up-skill"),
-    } == {"0.3.1"}
+    } == {"0.3.2"}
 
 
 def test_portable_skill_uses_fixed_agent_plugins_discovery_layout() -> None:
