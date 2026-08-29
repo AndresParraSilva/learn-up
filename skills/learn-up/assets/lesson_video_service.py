@@ -2,6 +2,7 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 import threading
 import traceback
 from dataclasses import dataclass
@@ -38,6 +39,21 @@ _JOBS: dict[str, VideoJobState] = {}
 _JOBS_LOCK = threading.Lock()
 _SOURCE_SYNC_LOCK = threading.Lock()
 _NOTEBOOKLM_GENERATION_LOCK = threading.Lock()
+
+
+def _console_safe(value: str, encoding: str | None = None) -> str:
+    target_encoding = encoding or getattr(sys.stdout, "encoding", None) or "utf-8"
+    try:
+        value.encode(target_encoding)
+    except UnicodeEncodeError:
+        return value.encode(target_encoding, errors="backslashreplace").decode(
+            target_encoding
+        )
+    return value
+
+
+def _print_console(value: str) -> None:
+    print(_console_safe(value), flush=True)
 
 
 def _notebooklm_profile() -> str:
@@ -149,27 +165,38 @@ def _run_job(topic_slug: str, lesson_slug: str) -> None:
     except (
         Exception
     ) as exc:  # surfaced to the frontend via get_job_status, not swallowed
-        print(
-            f"[video] generation failed for {topic_slug}/{lesson_slug}: {exc}",
-            flush=True,
+        _print_console(
+            f"[video] generation failed for {topic_slug}/{lesson_slug}: {exc}"
         )
-        traceback.print_exc()
+        _print_console(traceback.format_exc().rstrip())
         with _JOBS_LOCK:
             _JOBS[key] = VideoJobState(
                 status="error", started_at=_JOBS[key].started_at, error=str(exc)
             )
 
 
-def _run(cmd: list[str]) -> subprocess.CompletedProcess:
-    result = subprocess.run(cmd, text=True, capture_output=True)
-    print(
-        f"[video] notebooklm command exited {result.returncode}: {' '.join(cmd)}",
-        flush=True,
+def _run_captured(cmd: list[str]) -> subprocess.CompletedProcess[str]:
+    result = subprocess.run(
+        cmd,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+    )
+    result.stdout = result.stdout or ""
+    result.stderr = result.stderr or ""
+    return result
+
+
+def _run(cmd: list[str]) -> subprocess.CompletedProcess[str]:
+    result = _run_captured(cmd)
+    _print_console(
+        f"[video] notebooklm command exited {result.returncode}: {' '.join(cmd)}"
     )
     if result.stdout.strip():
-        print(f"[video] notebooklm stdout:\n{result.stdout.rstrip()}", flush=True)
+        _print_console(f"[video] notebooklm stdout:\n{result.stdout.rstrip()}")
     if result.stderr.strip():
-        print(f"[video] notebooklm stderr:\n{result.stderr.rstrip()}", flush=True)
+        _print_console(f"[video] notebooklm stderr:\n{result.stderr.rstrip()}")
     if result.returncode != 0:
         output = result.stderr or result.stdout
         if "RateLimitError" in output or "Rate limited" in output:
@@ -188,16 +215,12 @@ def _ensure_notebooklm_cli() -> None:
             "The `notebooklm` CLI isn't installed on this machine. Run `uv sync --group notebooklm` "
             "then `uv run notebooklm login`, or use the manual/ask-your-LLM alternative instead."
         )
-    check = subprocess.run(
-        _notebooklm_cmd("auth", "check", "--test", "--json"),
-        text=True,
-        capture_output=True,
-    )
-    print(f"[video] notebooklm auth check exited {check.returncode}", flush=True)
+    check = _run_captured(_notebooklm_cmd("auth", "check", "--test", "--json"))
+    _print_console(f"[video] notebooklm auth check exited {check.returncode}")
     if check.stdout.strip():
-        print(f"[video] notebooklm auth stdout:\n{check.stdout.rstrip()}", flush=True)
+        _print_console(f"[video] notebooklm auth stdout:\n{check.stdout.rstrip()}")
     if check.stderr.strip():
-        print(f"[video] notebooklm auth stderr:\n{check.stderr.rstrip()}", flush=True)
+        _print_console(f"[video] notebooklm auth stderr:\n{check.stderr.rstrip()}")
     if check.returncode != 0:
         raise LessonVideoError(
             "Not logged in to Gemini Notebook. Run `uv run notebooklm login`, then retry."
@@ -226,9 +249,8 @@ def _set_notebooklm_output_language(language_code: str) -> None:
             f"Supported codes: {supported}"
         )
     _run(_notebooklm_cmd("language", "set", language_code, "--json"))
-    print(
-        f"[video] NotebookLM output language set to {languages[language_code]} ({language_code})",
-        flush=True,
+    _print_console(
+        f"[video] NotebookLM output language set to {languages[language_code]} ({language_code})"
     )
 
 
@@ -239,10 +261,9 @@ def _get_or_create_notebook(topic_slug: str) -> str:
         state = json.loads(state_file.read_text())
         if state.get("profile", "default") == profile:
             return state["notebook_id"]
-        print(
+        _print_console(
             f"[video] NotebookLM profile changed from {state.get('profile', 'default')} to {profile}; "
-            "creating a new topic notebook",
-            flush=True,
+            "creating a new topic notebook"
         )
     result = _run(_notebooklm_cmd("create", read_topic_name(topic_slug), "--json"))
     data = json.loads(result.stdout)
@@ -447,7 +468,7 @@ def generate_lesson_video(topic_slug: str, lesson_slug: str) -> Path:
     title = frontmatter.get("title", lesson_slug)
     instructions = build_video_instructions(title, match.group("doc"))
     output_language = read_notebooklm_output_language(topic_slug)
-    print(
+    _print_console(
         f"[video] Gemini Notebook prompt for {topic_slug}/{lesson_slug}: {instructions}"
     )
 

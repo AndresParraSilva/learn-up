@@ -78,6 +78,11 @@ The shared service must print the auth-check result and every CLI command's exit
 stderr with a `[video]` prefix. The background worker must also print the full traceback when a
 generation fails. Video generation is asynchronous, so returning an error only through the HTTP
 status response is insufficient for diagnosing NotebookLM failures in a systemd/uvicorn log.
+Run every captured NotebookLM CLI command, including the auth check, with explicit UTF-8 decoding,
+replacement for malformed bytes, and stdout/stderr normalized to strings. Do not rely on the host
+locale: Windows may otherwise decode multilingual CLI output as CP1252. Route `[video]` output and
+formatted tracebacks through a console-safe writer that uses `backslashreplace` for characters the
+active stream cannot represent; do not change the process or Windows console code page globally.
 
 - `find_lesson_path` / `find_lesson_slug_by_objective` — locate a lesson file; no DB needed.
 - `start_generation(topic_slug, lesson_slug)` — validates synchronously (not already running, has a

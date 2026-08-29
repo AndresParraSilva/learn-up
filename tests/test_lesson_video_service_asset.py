@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -42,6 +43,77 @@ def prepare_sources(
     for filename in filenames:
         (sources_dir / filename).write_text(f"Source: {filename}", encoding="utf-8")
     return module.MEDIA_ROOT / "sample-topic" / ".sources_added.json"
+
+
+def test_run_captured_forces_utf8_and_normalizes_missing_streams(
+    lesson_video_service: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed: dict[str, object] = {}
+
+    def fake_subprocess_run(
+        cmd: list[str], **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
+        observed.update(kwargs)
+        return subprocess.CompletedProcess(cmd, 0, stdout=None, stderr=None)
+
+    monkeypatch.setattr(lesson_video_service.subprocess, "run", fake_subprocess_run)
+
+    result = lesson_video_service._run_captured(["notebooklm", "language", "list"])
+
+    assert observed == {
+        "text": True,
+        "encoding": "utf-8",
+        "errors": "replace",
+        "capture_output": True,
+    }
+    assert result.stdout == ""
+    assert result.stderr == ""
+
+
+def test_run_captured_decodes_multilingual_utf8(
+    lesson_video_service: ModuleType,
+) -> None:
+    result = lesson_video_service._run_captured(
+        [
+            sys.executable,
+            "-c",
+            "import sys; sys.stdout.buffer.write(bytes.fromhex('e697a5e69cace8aa9e'))",
+        ]
+    )
+
+    assert result.stdout == "日本語"
+    assert result.stderr == ""
+
+
+def test_auth_check_uses_shared_captured_runner(
+    lesson_video_service: ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    commands: list[list[str]] = []
+
+    def run_captured(command: list[str]) -> subprocess.CompletedProcess[str]:
+        commands.append(command)
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(lesson_video_service.shutil, "which", lambda _: "notebooklm")
+    monkeypatch.setattr(lesson_video_service, "_run_captured", run_captured)
+    monkeypatch.setattr(
+        lesson_video_service, "_notebooklm_cmd", lambda *args: list(args)
+    )
+
+    lesson_video_service._ensure_notebooklm_cli()
+
+    assert commands == [["auth", "check", "--test", "--json"]]
+
+
+def test_console_safe_escapes_unsupported_characters(
+    lesson_video_service: ModuleType,
+) -> None:
+    assert (
+        lesson_video_service._console_safe("Español 日本語", "cp1252")
+        == "Español \\u65e5\\u672c\\u8a9e"
+    )
 
 
 def test_sync_sources_rejects_html_before_any_upload(
