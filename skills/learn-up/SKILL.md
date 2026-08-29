@@ -97,11 +97,14 @@ settled.
 ## Phase 2 — Gather sources → `references/sources.md`
 
 Use the host's web search/browsing capability to find the most authoritative, current sources for
-this topic (official docs, standards, canonical textbooks/guides, reputable references). Download the best ones into
-`sources/<topic_slug>/` (PDFs/HTML/markdown), alongside anything the user provided. Keep a
+this topic (official docs, standards, canonical textbooks/guides, reputable references). Download
+the best ones into `sources/<topic_slug>/` as PDF, plain text, or Markdown, alongside anything the
+user provided. NotebookLM's upload endpoint does not support `.html` or `.htm` files: convert every
+HTML page to a readable `.txt`, `.md`, or `.pdf` file before it enters this upload corpus. Keep a
 `sources/<topic_slug>/SOURCES.md` index: filename, title, user-provided/agent-gathered origin, URL,
 authority/freshness, why, and limitations. These files are what the user will feed to Gemini
-Notebook per lesson, so name them clearly. Index every received source, even when it is not used.
+Notebook per lesson, so name them clearly and use each converted filename in the index and lesson
+placeholders. Index every received source, even when it is not used.
 
 ## Phase 3 — Design the syllabus → `references/content-schema.md`
 

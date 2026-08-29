@@ -16,6 +16,7 @@ from app.constants import (
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MEDIA_ROOT = REPO_ROOT / "media"
+HTML_SOURCE_SUFFIXES = {".htm", ".html"}
 PLACEHOLDER_RE = re.compile(
     r"\[placeholder\].*?Limit the topics to what's in (?P<doc>.+?)\.\".*?\[/placeholder\]",
     re.DOTALL,
@@ -35,6 +36,7 @@ class VideoJobState:
 
 _JOBS: dict[str, VideoJobState] = {}
 _JOBS_LOCK = threading.Lock()
+_SOURCE_SYNC_LOCK = threading.Lock()
 _NOTEBOOKLM_GENERATION_LOCK = threading.Lock()
 
 
@@ -259,18 +261,46 @@ def _get_or_create_notebook(topic_slug: str) -> str:
     return notebook_id
 
 
+def _save_added_sources(added_file: Path, added: set[str]) -> None:
+    added_file.parent.mkdir(parents=True, exist_ok=True)
+    pending_file = added_file.with_name(f"{added_file.name}.tmp")
+    pending_file.write_text(json.dumps(sorted(added)), encoding="utf-8")
+    pending_file.replace(added_file)
+
+
 def _sync_sources(topic_slug: str, notebook_id: str) -> None:
     sources_dir = REPO_ROOT / "sources" / topic_slug
     added_file = MEDIA_ROOT / topic_slug / ".sources_added.json"
-    added = set(json.loads(added_file.read_text())) if added_file.exists() else set()
-    skip = {"INTAKE.md", "SOURCES.md"}
-    for path in sorted(sources_dir.iterdir()):
-        if not path.is_file() or path.name in skip or path.name in added:
-            continue
-        _run(_notebooklm_cmd("source", "add", str(path), "--notebook", notebook_id))
-        added.add(path.name)
-    added_file.parent.mkdir(parents=True, exist_ok=True)
-    added_file.write_text(json.dumps(sorted(added)))
+    with _SOURCE_SYNC_LOCK:
+        added = (
+            set(json.loads(added_file.read_text(encoding="utf-8")))
+            if added_file.exists()
+            else set()
+        )
+        skip = {"INTAKE.md", "SOURCES.md"}
+        source_paths = [
+            path
+            for path in sorted(sources_dir.iterdir())
+            if path.is_file() and path.name not in skip
+        ]
+        html_paths = [
+            path for path in source_paths if path.suffix.lower() in HTML_SOURCE_SUFFIXES
+        ]
+        if html_paths:
+            names = ", ".join(path.name for path in html_paths)
+            raise LessonVideoError(
+                "NotebookLM's upload endpoint does not support HTML files: "
+                f"{names}. Convert each page to .txt, .md, or .pdf, move the .html/.htm "
+                f"file outside sources/{topic_slug}, update SOURCES.md and any affected "
+                "lesson placeholder, then retry."
+            )
+
+        for path in source_paths:
+            if path.name in added:
+                continue
+            _run(_notebooklm_cmd("source", "add", str(path), "--notebook", notebook_id))
+            added.add(path.name)
+            _save_added_sources(added_file, added)
 
 
 def _pending_tasks_file(topic_slug: str) -> Path:

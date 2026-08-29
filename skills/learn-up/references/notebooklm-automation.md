@@ -34,12 +34,26 @@ when asked** — never loop over every lesson in a topic.
    button (both call `app/services/lesson_video.py`), just from a shell instead of an HTTP request.
    Requires the backend dev server to be stopped first (DuckDB is single-writer — see "Shared
    service module" below).
-4. **Fully manual** — unchanged from before this feature existed: the user uploads sources to
+4. **Fully manual** — the user converts unsupported HTML pages, uploads the supported sources to
    notebooklm.google.com themselves, generates a video, downloads it, and either pastes the link in
    themselves or asks you to splice it into the lesson file. Always available, needs no installs.
 
 All four converge on the same artifact convention (see "Static serving" below), so a topic can
 freely mix paths lesson by lesson.
+
+## Source upload format — all four paths
+
+NotebookLM's upload endpoint does not support `.html` or `.htm` files. Before any automated
+`source add` call or manual upload, convert each HTML page's meaningful content to a real `.txt`,
+`.md`, or `.pdf` file and inspect the result; changing only the extension is not conversion. Keep
+raw HTML outside the top-level `sources/<topic_slug>/` upload corpus. Record the original page URL
+and converted filename in `SOURCES.md`, and if a lesson placeholder named the HTML file, update it
+to the converted filename before generating the video.
+
+Paths 1 and 3 enforce this contract in the shared service and fail before submitting any source if
+raw HTML remains. For Path 2, perform the check before invoking an MCP source-add tool. For Path 4,
+perform it before selecting files in NotebookLM's web UI. Never silently skip an HTML source: the
+user must know that the notebook would otherwise be missing part of its grounding corpus.
 
 ## Shared service module: `app/services/lesson_video.py`
 
@@ -84,6 +98,16 @@ status response is insufficient for diagnosing NotebookLM failures in a systemd/
   / `why_it_matters_markdown`) by reusing `app/content/seed.py`'s own `load_lesson_file` /
   `split_why_it_matters` — reuse those exact functions, don't re-derive the frontmatter/body-split
   parsing a second time, or the two will drift the moment either one is edited.
+
+**Resumable source synchronization — never re-upload files that already succeeded.** Before the
+first source-add command, `_sync_sources` preflights the complete top-level source corpus for HTML.
+It then uploads missing files one at a time and atomically rewrites
+`media/<topic_slug>/.sources_added.json` immediately after each successful command. If a later
+upload fails, propagate that error without recording the failed file; the already-recorded files
+remain the resume point, and the next attempt skips them and starts with the first missing file.
+Do not defer the state write until the whole batch finishes, and do not automatically retry the
+batch in a loop. Source synchronization is serialized within the app process so concurrent lesson
+jobs cannot overwrite each other's progress.
 
 **Resumable generation — never re-request a video the CLI already asked Gemini Notebook for.**
 `_JOBS` is in-memory only, so a backend restart (crash, reboot, `--reload` picking up an unrelated
@@ -330,8 +354,13 @@ still current.
    one already exists (list notebooks, match by the topic's `topic_name` from `syllabus.yaml`); if
    not, create it.
 3. Make sure every file in `sources/<topic_slug>/` (except `INTAKE.md`/`SOURCES.md`, which are your
-   own bookkeeping, not study material) has been added as a source to that notebook. Skip files
-   already added — check the notebook's current source list first, don't blindly re-add.
+   own bookkeeping, not study material) has been added as a source to that notebook. Before the
+   first source-add call, fail if any top-level source is `.html` or `.htm`; convert it per the
+   source-upload contract above, update `SOURCES.md` and any affected lesson placeholder, then
+   resume. Skip files already added — check the notebook's current source list first, don't blindly
+   re-add. Add missing sources one at a time. After each success, retain that progress; if a later
+   upload fails, stop and report it. On retry, list the notebook's current sources again and upload
+   only the files still missing instead of restarting the batch.
 4. Read `notebooklm_output_language` from the topic syllabus. List the currently supported
    NotebookLM languages, fail if the configured code is absent, and set that exact code before
    triggering generation. Then use an instruction of the form `Create a video titled "<lesson
@@ -368,17 +397,20 @@ running the script, not assumed).
 **Must run with the backend dev server stopped** — DuckDB is single-writer, and
 `generate_lesson_video()`'s DB update will fail with a lock error otherwise. If the user wants to
 generate a video while the app is running, point them at Path 1 (the button) instead, which runs
-in-process and doesn't hit this.
+in-process and doesn't hit this. The script shares Path 1's source preflight and refuses the entire
+upload batch before its first source-add call if `.html` or `.htm` remains in the upload corpus.
 
 ## Path 4 — fully manual
 
-Unchanged: the user (or you, if asked) uploads the files named in the placeholder to
-notebooklm.google.com, generates a video with the same "Create a video titled..." prompt (see
-above), downloads it, and it needs to land at `media/<topic_slug>/<slug>.mp4` with the lesson's
-placeholder replaced
+The user (or you, if asked) first converts any `.html` or `.htm` page named in the placeholder or
+present in the source corpus to `.txt`, `.md`, or `.pdf` per the source-upload contract above. Then
+they upload the supported files to notebooklm.google.com, generate a video with the same "Create a
+video titled..." prompt (see above), download it, and it needs to land at
+`media/<topic_slug>/<slug>.mp4` with the lesson's placeholder replaced
 by `[Watch the video summary](/media/<topic_slug>/<slug>.mp4)`. If the user hands you the
 downloaded file's path, do the move + edit for them (and the DB update, per Path 2 step 6, if you
-have DB access).
+have DB access). If one source upload fails, leave the successful sources in the notebook and retry
+only the missing files after checking its current source list.
 
 **Manual-placement pitfall (confirmed in a real build — don't skip either half of this):** dropping
 the `.mp4` at the right path is necessary but not sufficient, and the failure mode is silent rather
@@ -436,8 +468,9 @@ convention, whether or not the user ever configures notebooklm-py/notebooklm-mcp
   of this writing, so a bare `>=0.8` can be unsatisfiable if only alpha releases exist; pin to
   whatever's actually published, prereleases included.)
 - Document all four paths in the generated `README.md` (a "Generating lesson videos" section) and
-  add the one-line mention of user-paced/rate-limited generation to the generated `AGENTS.md`
-  (see `assets/agents.template.md`).
+  state that HTML pages must be converted to `.txt`, `.md`, or `.pdf` before upload and that a
+  failed batch resumes without re-uploading successful files. Add the one-line mention of
+  user-paced/rate-limited generation to the generated `AGENTS.md` (see `assets/agents.template.md`).
 - Run the live-button smoke test described at the end of the Path 1 section before considering
   Phase 5 done.
 

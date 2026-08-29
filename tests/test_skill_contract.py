@@ -58,6 +58,25 @@ def test_skill_requires_copying_and_validating_agents_template() -> None:
     assert "`references/about.md`" in skill
 
 
+def test_notebooklm_sources_require_html_conversion_before_upload() -> None:
+    skill = read_skill_file("SKILL.md")
+    sources = read_skill_file("references/sources.md")
+    automation = read_skill_file("references/notebooklm-automation.md")
+
+    for document in (skill, sources, automation):
+        assert "`.html`" in document
+        assert "`.htm`" in document
+        assert "`.txt`" in document
+        assert "`.md`" in document
+        assert "`.pdf`" in document
+
+    assert "PDFs/HTML/markdown" not in skill
+    assert "use each converted filename" in skill
+    assert "filename extension is not conversion" in sources
+    assert "Source upload format — all four paths" in automation
+    assert "before submitting any source" in automation
+
+
 def test_skill_routes_transfer_runs_to_canonical_assets() -> None:
     skill = read_skill_file("SKILL.md")
     reference = read_skill_file("references/topic-transfer.md")
