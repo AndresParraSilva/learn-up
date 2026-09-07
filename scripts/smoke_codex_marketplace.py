@@ -41,7 +41,7 @@ def verify_discovery(base: Path, env: dict[str, str], installed: Path) -> None:
         raise RuntimeError("codex is required")
     process = subprocess.Popen(
         [executable, "app-server", "--stdio"],
-        cwd=base,
+        cwd=base.parent,
         env=env,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
