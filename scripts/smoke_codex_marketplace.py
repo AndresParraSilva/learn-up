@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def run(args: list[str], cwd: Path, env: dict[str, str] | None = None) -> str:
-    return subprocess.run(
+    result = subprocess.run(
         args,
         cwd=cwd,
         env=env,
@@ -26,8 +26,13 @@ def run(args: list[str], cwd: Path, env: dict[str, str] | None = None) -> str:
         encoding="utf-8",
         capture_output=True,
         timeout=60,
-        check=True,
-    ).stdout
+        check=False,
+    )
+    if result.returncode:
+        raise RuntimeError(
+            f"Command failed: {args!r}\n{result.stdout}\n{result.stderr}"
+        )
+    return result.stdout
 
 
 def verify_discovery(base: Path, env: dict[str, str], installed: Path) -> None:
@@ -87,7 +92,10 @@ def verify_discovery(base: Path, env: dict[str, str], installed: Path) -> None:
             == (installed / "skills/learn-up/SKILL.md").resolve()
         )
     finally:
-        process.terminate()
+        if os.name == "nt":
+            run(["taskkill", "/PID", str(process.pid), "/T", "/F"], base)
+        else:
+            process.terminate()
         process.wait(timeout=10)
 
 
