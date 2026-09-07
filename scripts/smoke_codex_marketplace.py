@@ -92,11 +92,10 @@ def verify_discovery(base: Path, env: dict[str, str], installed: Path) -> None:
             == (installed / "skills/learn-up/SKILL.md").resolve()
         )
     finally:
-        if os.name == "nt":
-            run(["taskkill", "/PID", str(process.pid), "/T", "/F"], base)
-        else:
-            process.terminate()
-        process.wait(timeout=10)
+        process.stdin.close()
+        process.wait(timeout=30)
+        if process.returncode:
+            raise RuntimeError(f"Discovery process exited with {process.returncode}")
 
 
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
