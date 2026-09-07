@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.1
+
+- Have generated app agents offer to contribute every improvement back to the learn-up skill
+  through an upstream issue or pull request, with user approval before opening it.
+
+Local verification on Linux: pytest with coverage through the CRAP gate; Ruff and Prettier;
+manifest, skill, and release-tag validation; both host installer dry runs; Codex CLI 0.153.4
+Git-backed install/update and fresh-process skill discovery smoke tests. Windows and Desktop
+were not tested locally for this patch.
+
 ## 0.4.0
 
 - Distribute Codex through the Git-backed `learn-up` marketplace and its nested plugin package.

@@ -172,3 +172,6 @@ Keep `main.py` importing `app.main:app`.
 
 - Adding a topic never breaks existing topics. Never modify the crontab.
 - Update this file when a stack/structure/convention decision changes.
+- After introducing any improvement, offer to open an issue or pull request in
+  https://github.com/AndresParraSilva/learn-up so the improvement can be fed back
+  into the learn-up skill. Obtain the user's approval before opening it.

@@ -93,7 +93,7 @@ codex plugin marketplace list
 codex plugin list --marketplace learn-up --json
 ```
 
-Confirm `learn-up@learn-up` is installed and enabled, with version `0.4.0` for this release.
+Confirm `learn-up@learn-up` is installed and enabled, with version `0.4.1` for this release.
 Open a new thread and invoke `$learn-up <topic>`. Seeing the contributed skill in `/skills` is
 normal. If your client does not recognize these CLI commands, update Codex first.
 
