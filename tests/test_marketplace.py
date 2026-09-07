@@ -28,11 +28,11 @@ def test_repository_contract() -> None:
 def test_sync_detects_and_repairs_drift(repository: Path, change: str) -> None:
     target = repository / "plugins/learn-up/skills/learn-up/SKILL.md"
     if change == "changed":
-        target.write_text("stale")
+        target.write_text("stale", encoding="utf-8")
     elif change == "missing":
         target.unlink()
     elif change == "extra":
-        target.with_name("unexpected.txt").write_text("extra")
+        target.with_name("unexpected.txt").write_text("extra", encoding="utf-8")
     else:
         import os
 
@@ -58,7 +58,7 @@ def test_sync_excludes_transient_files(repository: Path) -> None:
 )
 def test_validator_rejects_broken_package(repository: Path, change: str) -> None:
     path = repository / ".agents/plugins/marketplace.json"
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding="utf-8"))
     if change in {"escape", "missing"}:
         payload["plugins"][0]["source"]["path"] = (
             "./../" if change == "escape" else "./missing"
@@ -69,17 +69,17 @@ def test_validator_rejects_broken_package(repository: Path, change: str) -> None
         payload["plugins"][0]["policy"]["authentication"] = "INVALID"
     else:
         manifest_path = repository / "plugins/learn-up/.codex-plugin/plugin.json"
-        manifest = json.loads(manifest_path.read_text())
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         if change == "asset":
             manifest["interface"]["logo"] = "./missing.png"
         else:
             manifest["version"] = "9.0.0" if change == "version" else "01.0.0"
-        manifest_path.write_text(json.dumps(manifest))
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
         if change == "semver":
             portable_path = repository / "plugin.json"
-            portable = json.loads(portable_path.read_text())
+            portable = json.loads(portable_path.read_text(encoding="utf-8"))
             portable["version"] = manifest["version"]
-            portable_path.write_text(json.dumps(portable))
-    path.write_text(json.dumps(payload))
+            portable_path.write_text(json.dumps(portable), encoding="utf-8")
+    path.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError):
         validate(repository)

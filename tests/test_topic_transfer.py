@@ -34,13 +34,17 @@ class Adapter:
 
     def resolve_topic_name(self, topic_slug: str) -> str:
         data = yaml.safe_load(
-            (self.repo / "content" / topic_slug / "syllabus.yaml").read_text()
+            (self.repo / "content" / topic_slug / "syllabus.yaml").read_text(
+                encoding="utf-8"
+            )
         )
         return data["topic_name"]
 
     def validate_staged_topic(self, staging_root: Path, topic_slug: str) -> None:
         syllabus = yaml.safe_load(
-            (staging_root / "content" / topic_slug / "syllabus.yaml").read_text()
+            (staging_root / "content" / topic_slug / "syllabus.yaml").read_text(
+                encoding="utf-8"
+            )
         )
         assert syllabus["topic_slug"] == topic_slug
         assert (staging_root / "sources" / topic_slug / "INTAKE.md").is_file()
@@ -79,14 +83,20 @@ def make_repo(
     (root / "sources/sample-topic").mkdir(parents=True)
     (root / "media/sample-topic").mkdir(parents=True)
     (root / "pyproject.toml").write_text(
-        f'[project]\nname = "learn-up"\nversion = "{version}"\n'
+        f'[project]\nname = "learn-up"\nversion = "{version}"\n', encoding="utf-8"
     )
     (root / "ABOUT.md").write_text(
-        f"# About learn-up\n\n## Version history\n\n### {version}\n"
+        f"# About learn-up\n\n## Version history\n\n### {version}\n", encoding="utf-8"
     )
-    (root / "sources/sample-topic/INTAKE.md").write_text("# Intake — Sample Topic\n")
-    (root / "sources/sample-topic/SOURCES.md").write_text("# Sources — Sample Topic\n")
-    (root / "content/sample-topic/CHANGELOG.md").write_text("# Changes\n\n## v1\n")
+    (root / "sources/sample-topic/INTAKE.md").write_text(
+        "# Intake — Sample Topic\n", encoding="utf-8"
+    )
+    (root / "sources/sample-topic/SOURCES.md").write_text(
+        "# Sources — Sample Topic\n", encoding="utf-8"
+    )
+    (root / "content/sample-topic/CHANGELOG.md").write_text(
+        "# Changes\n\n## v1\n", encoding="utf-8"
+    )
     syllabus = {
         "topic_slug": "sample-topic",
         "topic_name": "Sample Topic",
@@ -94,16 +104,18 @@ def make_repo(
         "domains": [],
     }
     (root / "content/sample-topic/syllabus.yaml").write_text(
-        yaml.safe_dump(syllabus, sort_keys=False)
+        yaml.safe_dump(syllabus, sort_keys=False), encoding="utf-8"
     )
     lesson = (
         "---\nobjective: '1.1'\ntitle: Lesson\n---\n\nLesson body.\n\n"
         "## Why It Matters\n\nReason.\n" + markdown_faq(lesson_entries or [])
     )
-    (root / "content/sample-topic/lessons/1.1/lesson.md").write_text(lesson)
+    (root / "content/sample-topic/lessons/1.1/lesson.md").write_text(
+        lesson, encoding="utf-8"
+    )
     questions = {"objective": "1.1", "questions": []}
     (root / "content/sample-topic/questions/1.1.yaml").write_text(
-        yaml.safe_dump(questions, sort_keys=False)
+        yaml.safe_dump(questions, sort_keys=False), encoding="utf-8"
     )
     lab = {
         "objective": "1.1",
@@ -111,15 +123,17 @@ def make_repo(
         "faq": lab_entries or [],
     }
     (root / "content/sample-topic/labs/1.1/lab.yaml").write_text(
-        yaml.safe_dump(lab, sort_keys=False)
+        yaml.safe_dump(lab, sort_keys=False), encoding="utf-8"
     )
     strategy = (
         "---\ntopic: pacing\ntitle: Pacing\n---\n\nStrategy body.\n"
         + markdown_faq(strategy_entries or [])
     )
-    (root / "content/sample-topic/strategy/lessons/pacing.md").write_text(strategy)
+    (root / "content/sample-topic/strategy/lessons/pacing.md").write_text(
+        strategy, encoding="utf-8"
+    )
     (root / "content/sample-topic/strategy/questions.yaml").write_text(
-        "questions: []\n"
+        "questions: []\n", encoding="utf-8"
     )
     (root / "media/sample-topic/lesson.mp4").write_bytes(
         b"\x00\x00\x00\x18ftypisom\x00\x00\x00\x00isommp42"
@@ -176,7 +190,7 @@ def test_new_topic_round_trip_and_canonical_manifest(tmp_path: Path) -> None:
     make_repo(source)
     destination.mkdir()
     (destination / "pyproject.toml").write_text(
-        '[project]\nname = "learn-up"\nversion = "1.0"\n'
+        '[project]\nname = "learn-up"\nversion = "1.0"\n', encoding="utf-8"
     )
     archive = export_fixture(source, tmp_path)
     second_archive = tmp_path / "second.learnup.zip"
@@ -209,10 +223,9 @@ def test_new_topic_round_trip_and_canonical_manifest(tmp_path: Path) -> None:
     assert report.status == "installed"
     assert (destination / "content/sample-topic/syllabus.yaml").is_file()
     assert (destination / "media/sample-topic/lesson.mp4").is_file()
-    assert (
-        "Source app version: `1.0`"
-        in (destination / "content/sample-topic/CHANGELOG.md").read_text()
-    )
+    assert "Source app version: `1.0`" in (
+        destination / "content/sample-topic/CHANGELOG.md"
+    ).read_text(encoding="utf-8")
 
 
 def test_update_merges_unique_lesson_lab_and_strategy_q_and_a(tmp_path: Path) -> None:
@@ -243,12 +256,16 @@ def test_update_merges_unique_lesson_lab_and_strategy_q_and_a(tmp_path: Path) ->
     assert report.mode == "update"
     assert report.merged_q_and_a == 3
     assert report.backup is not None
-    lesson = (destination / "content/sample-topic/lessons/1.1/lesson.md").read_text()
+    lesson = (destination / "content/sample-topic/lessons/1.1/lesson.md").read_text(
+        encoding="utf-8"
+    )
     assert lesson.count("### Common?") == 1
     assert "### Incoming?" in lesson
     assert "### Local?" in lesson
     lab = yaml.safe_load(
-        destination.joinpath("content/sample-topic/labs/1.1/lab.yaml").read_text()
+        destination.joinpath("content/sample-topic/labs/1.1/lab.yaml").read_text(
+            encoding="utf-8"
+        )
     )
     assert [entry["question"] for entry in lab["faq"]] == [
         "Incoming lab?",
@@ -256,7 +273,7 @@ def test_update_merges_unique_lesson_lab_and_strategy_q_and_a(tmp_path: Path) ->
     ]
     strategy = destination.joinpath(
         "content/sample-topic/strategy/lessons/pacing.md"
-    ).read_text()
+    ).read_text(encoding="utf-8")
     assert "### Incoming strategy?" in strategy
     assert "### Local strategy?" in strategy
 
@@ -317,7 +334,7 @@ def test_export_excludes_source_binaries_and_runtime_media_state(
     source = tmp_path / "source"
     make_repo(source)
     (source / "sources/sample-topic/private.pdf").write_bytes(b"private source")
-    (source / "media/sample-topic/.notebook.json").write_text("{}")
+    (source / "media/sample-topic/.notebook.json").write_text("{}", encoding="utf-8")
 
     archive = tmp_path / "sample-topic.learnup.zip"
     report = export_topic(
@@ -374,7 +391,7 @@ def test_import_rejects_checksum_tampering_and_newer_versions(tmp_path: Path) ->
         )
 
     (destination / "pyproject.toml").write_text(
-        '[project]\nname = "learn-up"\nversion = "1.1"\n'
+        '[project]\nname = "learn-up"\nversion = "1.1"\n', encoding="utf-8"
     )
     tampered = rewrite_archive(
         archive,
@@ -672,7 +689,7 @@ def test_bootstrap_rejects_malformed_destination_version(tmp_path: Path) -> None
 
 def test_bootstrap_rejects_downloaded_html(tmp_path: Path) -> None:
     archive = tmp_path / "incoming.learnup.zip"
-    archive.write_text("<!doctype html><title>Sharing page</title>")
+    archive.write_text("<!doctype html><title>Sharing page</title>", encoding="utf-8")
 
     with pytest.raises(TopicTransferError, match="not a valid ZIP"):
         with stage_topic_archive(archive, "1.0"):
@@ -725,7 +742,9 @@ def test_bootstrap_does_not_replace_full_app_validation(tmp_path: Path) -> None:
     archive = export_fixture(source, tmp_path)
     destination = tmp_path / "destination"
     destination.mkdir()
-    (destination / "pyproject.toml").write_text('[project]\nversion = "1.0"\n')
+    (destination / "pyproject.toml").write_text(
+        '[project]\nversion = "1.0"\n', encoding="utf-8"
+    )
 
     class RejectingAdapter(Adapter):
         def validate_staged_topic(self, staging_root: Path, topic_slug: str) -> None:
