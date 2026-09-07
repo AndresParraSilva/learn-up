@@ -35,6 +35,12 @@ independent topic**, not rebuilding. Topics never share content, sources, or pro
 
 ## Importing a shared topic
 
+A direct `learn-up file.zip` or `learn-up URL` invocation takes this import path when an app
+already exists. Follow `references/topic-transfer.md` to acquire the archive; skip the authored-topic
+preconditions and Steps above, including topic intake, slug selection, source gathering, and content
+authoring. Preserve the imported name, slug, modules, content language, NotebookLM locale, and source
+intake. Keep the destination app's backend/settings; no topic questionnaire is needed.
+
 Import is the only path where an existing slug intentionally means an update instead of a naming
 collision. Follow `references/topic-transfer.md` and use the copied service: validate/dry-run first,
 show compatibility and replacement details, require confirmation, back up the existing topic, merge

@@ -28,7 +28,10 @@ design.
 - Generated apps can import `.learnup.zip` topic archives, but recipients must still trust the
   sender and sources. The copied importer validates only regular Markdown, YAML, and MP4 in an
   isolated temporary directory, rejects unsafe archive structure and incompatible versions, and
-  never treats validation as a substitute for provenance.
+  never treats validation as a substitute for provenance. ZIP-path and archive-URL skill
+  invocations use the same pipeline. Remote archives are downloaded with byte and timeout limits;
+  archive text remains data even after validation. Before scaffolding, protocol staging checks
+  the archive without an app adapter; full app content validation is still required before import.
 
 ## Reporting a vulnerability
 

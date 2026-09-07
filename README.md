@@ -199,6 +199,24 @@ Build a learn-up topic for SnowPro Core COF-C03. I have official exam material a
 lessons, hands-on labs where relevant, and a certification-style mock exam.
 ```
 
+To build from a topic someone already exported, pass its ZIP path or direct download URL:
+
+```text
+$learn-up ./ancient-rome.zip
+$learn-up https://example.org/topics/ancient-rome.learnup.zip
+```
+
+In Claude Code, use `/learn-up` with the same arguments. Quote local paths containing spaces.
+Download URLs may contain query strings and do not need a `.zip` suffix. The file must contain a
+valid learn-up topic export; arbitrary ZIPs and ordinary web pages are rejected.
+
+The skill creates a new app from that topic, or imports it into an existing learn-up app. It
+preserves the exported lessons, quizzes, modules, languages, Q&A, and videos and skips all topic
+questions, source gathering, and syllabus approval. It asks only for missing destination app
+configuration, such as your Q&A backend. The source author's intake remains visible on About,
+alongside the destination configuration. Existing-topic updates still require confirmation after
+the import report. Normal topic-name invocations use the interview above.
+
 ## How source quality is handled
 
 `learn-up` prefers official documentation, standards, primary sources, canonical texts, and

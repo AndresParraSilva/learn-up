@@ -85,6 +85,15 @@ archive creation time, and archive SHA-256 to the topic changelog. That provenan
 on About. Never replace root `ABOUT.md` with the source app's archived About snapshot; the root file
 always describes the destination app.
 
+When building from an exported topic, keep its imported `INTAKE.md` unchanged and label that
+configuration as the source author's answers, not a recipient interview. Add a
+`## Destination configuration` section to root `ABOUT.md` recording the recipient's actual FAQ
+backend, other supplied app constraints, and that the topic settings came from an export. This
+appears through the existing `app_markdown` field. Never configure the recipient's provider from
+the imported backend row, or require that historical row to equal the live app's backend.
+Destination configuration changes belong in root `ABOUT.md` and its version history; they do not
+rewrite an imported topic's intake. Existing apps retain their configuration during import.
+
 Do not put secrets in these documents or return secret environment values through the API. Intake
 must never ask for credential values. When configuration depends on a secret, record only the
 environment-variable name and whether the user intends to configure it.
@@ -143,7 +152,7 @@ The generated `AGENTS.md` makes About maintenance mandatory. Apply it as follows
   `ABOUT.md` version entry.
 - Topic content change: also add a dated entry to that topic's
   `content/<topic_slug>/CHANGELOG.md` so its details appear on the topic About page.
-- Intake/configuration change: update `INTAKE.md`, bump the compatibility version, and document the
+- Authored-topic intake/configuration change: update `INTAKE.md`, bump the compatibility version, and document the
   change in the topic changelog.
 - Source addition, removal, replacement, or reassessment: update `SOURCES.md`, bump the
   compatibility version, and document the change in the topic changelog.
@@ -168,4 +177,6 @@ topic's intake, sources, and content changelog while showing the same current ap
 version history as every existing topic page.
 Also export and import a topic between compatible app versions. Verify the destination About page
 shows the trust warning, destination app history, source app/archive versions, and archive checksum,
-without rendering the source root app history as if it belonged to the destination.
+without rendering the source root app history as if it belonged to the destination. For an app
+built from an archive, also verify that the original intake and the recipient's destination
+configuration are both visible and clearly attributed, including when their FAQ backends differ.

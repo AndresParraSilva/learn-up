@@ -124,7 +124,10 @@ Keep `main.py` importing `app.main:app`.
   import; a backward-compatible archive-format extension increments its format minor and app
   `MINOR`.
 - Import provenance belongs in the topic changelog/About. Never overwrite the destination root
-  `ABOUT.md` with the source app's archived About snapshot.
+  `ABOUT.md` with the source app's archived About snapshot. Preserve imported `INTAKE.md` as the
+  source author's configuration. Record the recipient's backend and app constraints separately
+  under `## Destination configuration` in root `ABOUT.md`; do not overwrite imported intake to
+  make its historical backend match the destination provider.
 
 ## 7. Topic transfer security
 

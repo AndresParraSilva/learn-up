@@ -21,6 +21,7 @@ from topic_transfer import (  # noqa: E402
     export_topic,
     import_topic,
     load_manifest,
+    stage_topic_archive,
 )
 from topic_transfer.types import FileRecord  # noqa: E402
 
@@ -610,3 +611,134 @@ def test_failed_reseed_restores_existing_topic(tmp_path: Path) -> None:
         destination / "content/sample-topic/lessons/1.1/lesson.md"
     ).read_bytes() == original
     assert adapter.reseed_calls == 2
+
+
+def test_bootstrap_stages_generic_zip_without_app_and_cleans_up(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    make_repo(source)
+    archive = export_fixture(source, tmp_path).rename(tmp_path / "topic export.zip")
+    original = archive.read_bytes()
+
+    with stage_topic_archive(archive, "1.0") as (manifest, staging_root, ignored):
+        assert manifest.topic_slug == "sample-topic"
+        assert manifest.topic_name == "Sample Topic"
+        assert ignored == []
+        assert not (staging_root / "pyproject.toml").exists()
+        assert (staging_root / "about/INTAKE.md").read_bytes() == (
+            source / "sources/sample-topic/INTAKE.md"
+        ).read_bytes()
+        assert (staging_root / "media/sample-topic/lesson.mp4").read_bytes() == (
+            source / "media/sample-topic/lesson.mp4"
+        ).read_bytes()
+        assert (staging_root / "content/sample-topic/syllabus.yaml").read_bytes() == (
+            source / "content/sample-topic/syllabus.yaml"
+        ).read_bytes()
+
+    assert not staging_root.exists()
+    assert archive.read_bytes() == original
+    assert set(tmp_path.iterdir()) == {source, archive}
+
+
+def test_bootstrap_cleans_staging_when_consumer_fails(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    make_repo(source)
+    archive = export_fixture(source, tmp_path)
+
+    with pytest.raises(RuntimeError, match="invalid topic configuration"):
+        with stage_topic_archive(archive, "1.0") as (_, staging_root, _):
+            raise RuntimeError("invalid topic configuration")
+
+    assert not staging_root.exists()
+
+
+@pytest.mark.parametrize("source_version", ["1.1", "2.0"])
+def test_bootstrap_rejects_incompatible_source_before_exposing_data(
+    tmp_path: Path, source_version: str
+) -> None:
+    source = tmp_path / "source"
+    make_repo(source, version=source_version)
+    archive = export_fixture(source, tmp_path)
+
+    with pytest.raises(TopicTransferError, match="upgrade|incompatible"):
+        with stage_topic_archive(archive, "1.0"):
+            pytest.fail("Incompatible topic was exposed to the consumer")
+
+
+def test_bootstrap_rejects_malformed_destination_version(tmp_path: Path) -> None:
+    with pytest.raises(TopicTransferError, match="MAJOR.MINOR"):
+        with stage_topic_archive(tmp_path / "missing.zip", "1.0.0"):
+            pytest.fail("Malformed destination version was accepted")
+
+
+def test_bootstrap_rejects_downloaded_html(tmp_path: Path) -> None:
+    archive = tmp_path / "incoming.learnup.zip"
+    archive.write_text("<!doctype html><title>Sharing page</title>")
+
+    with pytest.raises(TopicTransferError, match="not a valid ZIP"):
+        with stage_topic_archive(archive, "1.0"):
+            pytest.fail("HTML was exposed as topic data")
+
+
+@pytest.mark.parametrize(
+    ("changes", "update_manifest", "message"),
+    [
+        ({"../outside.md": b"# Escape"}, False, "Unsafe ZIP"),
+        ({"run.py": b"print('untrusted')"}, False, "Executable"),
+        ({"about/INTAKE.md": b"# altered intake record"}, False, "size mismatch"),
+        ({"about/INTAKE.md": b"# Intake \x00"}, True, "NUL"),
+    ],
+)
+def test_bootstrap_rejects_unsafe_or_corrupt_archives(
+    tmp_path: Path, changes: dict[str, bytes], update_manifest: bool, message: str
+) -> None:
+    source = tmp_path / "source"
+    make_repo(source)
+    original = export_fixture(source, tmp_path)
+    archive = rewrite_archive(
+        original, tmp_path / "incoming.zip", changes, update_manifest=update_manifest
+    )
+
+    with pytest.raises(TopicTransferError, match=message):
+        with stage_topic_archive(archive, "1.0"):
+            pytest.fail("Invalid archive was exposed to the consumer")
+    assert not (tmp_path / "outside.md").exists()
+
+
+def test_bootstrap_enforces_compressed_size_limit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "source"
+    make_repo(source)
+    archive = export_fixture(source, tmp_path)
+    monkeypatch.setattr(
+        "topic_transfer.core.MAX_ARCHIVE_BYTES", archive.stat().st_size - 1
+    )
+
+    with pytest.raises(TopicTransferError, match="maximum compressed size"):
+        with stage_topic_archive(archive, "1.0"):
+            pytest.fail("Oversized archive was exposed to the consumer")
+
+
+def test_bootstrap_does_not_replace_full_app_validation(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    make_repo(source)
+    archive = export_fixture(source, tmp_path)
+    destination = tmp_path / "destination"
+    destination.mkdir()
+    (destination / "pyproject.toml").write_text('[project]\nversion = "1.0"\n')
+
+    class RejectingAdapter(Adapter):
+        def validate_staged_topic(self, staging_root: Path, topic_slug: str) -> None:
+            super().validate_staged_topic(staging_root, topic_slug)
+            raise ValueError("objective coverage is incomplete")
+
+    with stage_topic_archive(archive, "1.0") as (manifest, _, _):
+        assert manifest.topic_slug == "sample-topic"
+
+    adapter = RejectingAdapter(destination)
+    with pytest.raises(ValueError, match="objective coverage"):
+        import_topic(
+            archive, TransferRoots.from_repo(destination), adapter, confirm=True
+        )
+    assert not (destination / "content").exists()
+    assert adapter.reseed_calls == 0

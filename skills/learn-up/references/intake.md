@@ -2,10 +2,39 @@
 
 ## Contents
 
+- Exported-topic intake
 - Cross-host interview behavior
 - Learner, objective, material, language, and backend questions
 - Optional module selection
 - Certification facts and intake record
+
+## Exported-topic intake
+
+For a ZIP-path or archive-URL invocation, first stage and inspect the export through
+`references/topic-transfer.md`. Its existing topic configuration replaces the topic interview.
+Skip questions 1–6 below and all topic, deadline, certification, module-selection, exam-fact,
+and sizing follow-ups. Do not ask the recipient to confirm the syllabus or choose a topic name.
+Use the archive's manifest for identity, its syllabus for runtime topic settings, and its intake
+for the source author's recorded knowledge level, objective, and constraints. Keep the exact
+content language and `notebooklm_output_language`; do not query NotebookLM just to reselect them.
+Missing, malformed, or inconsistent required topic data fails validation rather than triggering
+new answers or silent defaults.
+
+For a new app, ask question 7 only if the recipient has not already selected the FAQ backend.
+Resolve any other missing destination app configuration without reopening topic questions.
+An exported backend preference describes the source app and does not authorize using that provider
+for the recipient. For an existing app, retain its backend and other app settings without asking
+again. Do not copy credentials, account/profile state, or provider configuration from an archive.
+
+Preserve imported `sources/<topic_slug>/INTAKE.md` verbatim as source configuration provenance.
+Do not fill it with `Not applicable`, attribute the original answers to the recipient, or overwrite
+its backend row. Record recipient answers and supplied app constraints in root `ABOUT.md` under
+`## Destination configuration`, including the actual `faq_llm_backend` and that topic configuration
+was imported. About already renders this file; no extra API field is needed. A difference between
+the historical imported backend and the destination backend is expected, not an intake validation
+error. All remaining interview and intake-writing instructions below apply to authored topics.
+
+## Cross-host interview behavior
 
 Run a short structured interview. Prefer the host's interactive selection/question UI when one is
 available. Respect that UI's per-call limits and issue independent question groups together when

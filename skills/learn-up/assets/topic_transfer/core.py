@@ -164,6 +164,19 @@ def inspect_topic_archive(
     return import_topic(archive_path, roots, adapter, confirm=False)
 
 
+@contextmanager
+def stage_topic_archive(
+    archive_path: Path, destination_version: str
+) -> Iterator[tuple[Manifest, Path, list[str]]]:
+    """Stage protocol-validated data; full app validation is still required before import."""
+    parse_app_version(destination_version)
+    try:
+        with _validated_staging(archive_path, destination_version) as staged:
+            yield staged
+    except zipfile.BadZipFile as exc:
+        raise TopicTransferError("File is not a valid ZIP archive") from exc
+
+
 def import_topic(
     archive_path: Path,
     roots: TransferRoots,

@@ -1,6 +1,6 @@
 ---
 name: learn-up
-description: Create, extend, export, or securely import topics in a local self-hosted study web app grounded in user-provided and authoritative sources. Use when explicitly invoked as learn-up, when the user asks to "learn up" or share a topic, or when they want blueprint-mapped lessons, explained quizzes, hands-on labs, spaced repetition, progress tracking, multilingual content, a topic archive, or a specific lesson's Gemini Notebook video in an existing learn-up app.
+description: Create, extend, export, or securely import topics in a local self-hosted study web app grounded in user-provided and authoritative sources. Use when explicitly invoked as learn-up with a topic, exported ZIP path, or archive URL, when the user asks to "learn up" or share a topic, or when they want blueprint-mapped lessons, explained quizzes, hands-on labs, spaced repetition, progress tracking, multilingual content, a topic archive, or a specific lesson's Gemini Notebook video in an existing learn-up app.
 ---
 
 # learn-up — build a study app for any topic
@@ -17,15 +17,16 @@ the whole build in your head; pull each reference in as you reach its phase.
 
 ## Golden rules
 
-1. **Ask before authoring.** Never skip the intake (Phase 1). The topic's size, the user's
-   goal, and their starting knowledge decide the whole shape of the app.
+1. **Ask before authoring.** Run the topic intake (Phase 1) for newly authored topics. For an
+   exported topic, preserve its recorded scope and content, skip topic questions, and ask only
+   for missing destination app configuration per `references/intake.md`.
 2. **Everything is blueprint-tagged.** Every lesson, question, and lab references an
    `objective` code that exists in that topic's `syllabus.yaml`. Off-syllabus content is a bug.
    A content **validator** must fail loudly on any gap or dangling tag.
 3. **Fail loudly.** No silent defaults, no graceful degradation that hides missing content or
    bad input. Raise/assert on unexpected shapes. This applies to the app code you generate too.
-4. **Every lesson opens with the Gemini Notebook video placeholder** (exact text in Phase 4). This is
-   non-negotiable and is the reason the `sources/` folder exists. Resolving it into a real video is
+4. **Every newly authored lesson opens with the Gemini Notebook video placeholder** (exact text
+   in Phase 4). This is non-negotiable and is the reason the `sources/` folder exists. Resolving it into a real video is
    user-paced and per-lesson (never bulk-generated), via one of four paths (an in-app button being
    the default) — see `references/notebooklm-automation.md`.
 5. **Reuse the design system and brand assets verbatim.** Copy `assets/index.css`,
@@ -43,10 +44,18 @@ the whole build in your head; pull each reference in as you reach its phase.
 ## Phase 0 — Locate/target the repo
 
 1. Run `date` and note today's date (used for the changelog and any pacing math).
-2. Check whether this invocation is a **TRANSFER** run against an existing app: a request to export,
-   share, validate, or import a topic archive. If so, locate the generated learn-up repo, read
-   `references/topic-transfer.md`, use its copied commands/service, and skip Phases 1–4. Never
-   inspect or extract an incoming archive with ad hoc shell commands.
+2. Recognize an **ARCHIVE** run before interpreting a topic name: `learn-up file.zip` or
+   `learn-up URL`, including `$learn-up` in Codex and `/learn-up` in Claude Code. A standalone
+   HTTP(S) URL means a download link to an exported topic; it need not end in `.zip`. A URL or
+   file explicitly supplied as source material for a named topic remains part of normal intake.
+   Read `references/topic-transfer.md`'s **Build or extend from an archive** section. It locates
+   the destination, acquires and validates the archive, and derives the topic from its contents.
+   For a new app, run only the destination-configuration intake, skip Phases 2–4, then scaffold
+   in Phase 5 and import before its live smoke test. For an existing app, use the transfer
+   workflow without topic intake or authoring. Do not derive a slug from the filename or URL.
+   Explicit export/share/validate/import requests are **TRANSFER** runs using the same reference;
+   validation alone must not create an app. These modes bypass the remaining Phase 0 steps.
+   Never inspect or extract an archive with ad hoc shell commands.
 3. Check whether this invocation is actually a **GENERATE-VIDEO** run instead of a build: a request
    to generate/fetch a specific lesson's video against an app that already exists (e.g. "generate
    the video for lesson 1.1 of github-actions", "make the Gemini Notebook video for the founding-myths
@@ -68,6 +77,9 @@ the whole build in your head; pull each reference in as you reach its phase.
    topic's content, sources, and routes; it must be unique within the repo.
 
 ## Phase 1 — Intake (interactive) → `references/intake.md`
+
+**ARCHIVE runs:** follow the exported-topic branch in `references/intake.md`; the topic interview
+and intake-writing instructions below apply only to newly authored topics.
 
 Use the host's interactive question or selection UI when it is available; otherwise run the same
 short structured interview directly in chat. You must learn:
@@ -145,6 +157,12 @@ the raw placeholder text until something rewrites it. See `references/notebooklm
 "manual-placement pitfall" note for the mechanism.
 
 ## Phase 5 — Scaffold or extend the app
+
+**ARCHIVE new-app runs:** use the exported syllabus and topic settings when scaffolding below.
+Follow `references/topic-transfer.md`'s new-app sequence to install dependencies and import through
+the real adapter before the live smoke test. Skip source gathering and syllabus/content authoring;
+preserve exported content and resolved video links. Record destination configuration in root
+`ABOUT.md` instead of rewriting imported intake. Phase 6 uses the destination's selected backend.
 
 - **NEW-APP:** build the repo per `references/tech-stack.md`, `references/backend.md`,
   `references/frontend.md`, `references/ui-design.md`. Configure `app/main.py` with the mandatory
