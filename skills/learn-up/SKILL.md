@@ -97,7 +97,7 @@ short structured interview directly in chat. You must learn:
 - **NotebookLM output language** — the exact supported locale code for generated artifacts, selected
   from `notebooklm language list --json` (for example, `en`, `es`, or `es_419`). Prefer a regional
   variant when the user specifies one; do not infer a generic locale when their preference is known.
-- **FAQ LLM backend** — choose `claude_cli`, `codex_cli`, or `openhands` based on the user's active
+- **FAQ LLM backend** — choose `claude_cli`, `codex_cli`, `antigravity_cli`, or `openhands` based on the user's active
   agent and preference. Prefer the authenticated CLI they are already using; never silently switch
   providers or introduce an API charge.
 
@@ -238,7 +238,7 @@ Per the generated `README.md`:
    Build one `uv sync` command containing every optional group needed for this run; `uv sync`
    prunes packages from groups that are not selected, so syncing one group separately can remove
    another feature's dependencies:
-   - With the intake-selected `claude_cli` or `codex_cli` backend, run `uv sync`; neither CLI
+   - With the intake-selected `claude_cli`, `codex_cli`, or `antigravity_cli` backend, run `uv sync`; no CLI
      backend needs a Python dependency group or an app-specific API key.
    - With `LEARNUP_LLM_BACKEND=openhands`, include `--group openhands`. This is required even
      though OpenHands is an optional dependency group; `uv sync` alone does not install
@@ -270,6 +270,7 @@ dev -- --port <port>`. Confirm `uv run uvicorn ...` works with **zero env-var ov
 7. Smoke-test the select-to-ask FAQ using the backend actually selected by configuration. With
    `claude_cli`, test the authenticated `claude` CLI on PATH. With
    `codex_cli`, test the authenticated `codex` CLI on PATH. With
+   `antigravity_cli`, test the authenticated `agy` CLI on PATH using `agy -p`. With
    `LEARNUP_LLM_BACKEND=openhands`, test the configured provider/model (including a local Ollama
    endpoint when used) after installing the `openhands` group. If the selected backend cannot answer,
    report its concrete missing dependency, executable, credential, model, or endpoint; do not switch

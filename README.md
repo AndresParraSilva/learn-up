@@ -34,8 +34,8 @@ a local app around that syllabus.
 - Quizzes and mock exams with one-based question numbering that explain every option—not only the
   correct answer.
 - Optional hands-on labs, mock exams, exam strategy, badges, and readiness tracking.
-- Select-to-ask Q&A powered by your existing Claude or Codex login, or by an OpenHands-compatible
-  hosted/local model.
+- Select-to-ask Q&A powered by your existing Claude, Codex, or Antigravity (`agy -p`) login, or by
+  an OpenHands-compatible hosted/local model.
 - Optional Gemini Notebook video summaries, generated one lesson at a time.
 - Multiple independent subjects in the same app, selected from a branded topic picker with a
   persistent link back home.
@@ -281,13 +281,13 @@ for scope. Treat dumps, old prep books, and community question banks as secondar
 
 ## Compatibility
 
-| Host                      | Status                                                | Invocation                     | Notes                                                                                                                                       |
-| ------------------------- | ----------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Claude Code               | Supported                                             | `/learn-up <topic>`            | Installer adds Claude's manual-invocation flag to the installed copy.                                                                       |
-| Codex CLI / IDE / desktop | Supported                                             | `$learn-up <topic>`            | Uses the shared Agent Skills payload plus Codex-specific plugin and UI metadata.                                                            |
-| Agent Plugins 1.0 clients | Portable package supported                            | Client-specific                | Load the repository root; `plugin.json` declares the package and `skills/learn-up/SKILL.md` is discovered from the standard fixed location. |
-| Other Agent Skills hosts  | Expected, not verified                                | Host-specific                  | Requires filesystem editing, shell execution, and web access; install `skills/learn-up` using the host's documented skill location.         |
-| ChatGPT Work on the web   | Plugin package ready; marketplace publication pending | `@learn-up` after installation | The repository includes a valid Codex plugin manifest, but public marketplace listing is a separate release step.                           |
+| Host                      | Status                                                           | Invocation                     | Notes                                                                                                                                                           |
+| ------------------------- | ---------------------------------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code               | Supported                                                        | `/learn-up <topic>`            | Installer adds Claude's manual-invocation flag to the installed copy.                                                                                           |
+| Codex CLI / IDE / desktop | Supported                                                        | `$learn-up <topic>`            | Uses the shared Agent Skills payload plus Codex-specific plugin and UI metadata.                                                                                |
+| Agent Plugins 1.0 clients | Portable package supported                                       | Client-specific                | Load the repository root; `plugin.json` declares the package and `skills/learn-up/SKILL.md` is discovered from the standard fixed location.                     |
+| Other Agent Skills hosts  | Expected, not verified                                           | Host-specific                  | Requires filesystem editing, shell execution, and web access; install `skills/learn-up` using the host's documented skill location.                             |
+| ChatGPT Work on the web   | Supported through GitHub marketplace import by a workspace admin | `@learn-up` after installation | A workspace admin imports the Git-backed marketplace from this repository. Once installed and enabled for the workspace, learn-up is available in ChatGPT Work. |
 
 The canonical skill follows the shared Agent Skills structure and keeps host-specific policy out of
 `SKILL.md`. See the current [Claude Code skill documentation](https://code.claude.com/docs/en/skills)

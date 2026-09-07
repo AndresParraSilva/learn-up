@@ -97,11 +97,15 @@ Ask these, grouped for the available interaction surface:
 
 7. **FAQ LLM backend** (`header: "Study Q&A"`, single-select)
    - Inspect which supported authenticated CLI is driving or available in the current environment.
-   - If exactly one of `claude` or `codex` is available, recommend its matching backend and confirm.
-   - If both are available, offer `Claude CLI` / `Codex CLI` / `OpenHands or local model`.
-   - If neither is available, explain that the select-to-ask feature needs one of those choices and
-     ask whether to configure OpenHands with a hosted or local LiteLLM-compatible provider.
-   - Record the exact value as `faq_llm_backend`: `claude_cli`, `codex_cli`, or `openhands`.
+   - Consider `claude`, `codex`, and `agy` (Antigravity). If exactly one is available,
+     recommend its matching backend and confirm the user's choice; presence on PATH alone
+     does not establish authentication.
+   - When multiple CLIs are available, offer their matching choices (`Claude CLI`, `Codex CLI`,
+     `Antigravity CLI`) plus `OpenHands or local model`. Prefer the authenticated CLI already in use.
+   - If none is available, offer installing/authenticating a supported CLI or configuring
+     OpenHands with a hosted or local LiteLLM-compatible provider.
+   - Record the exact value as `faq_llm_backend`: `claude_cli`, `codex_cli`,
+     `antigravity_cli`, or `openhands`.
    - Never auto-fallback at runtime. Provider changes can alter cost and privacy expectations.
 
 ## Module toggles (decide from the answers)
@@ -137,21 +141,21 @@ Use this minimum structure, adding rows rather than omitting information:
 
 ## Configuration
 
-| Parameter                  | Value                                             |
-| -------------------------- | ------------------------------------------------- |
-| Topic                      | <topic>                                           |
-| Topic slug                 | <topic_slug>                                      |
-| Current knowledge          | <answer>                                          |
-| Objective                  | <verbatim answer>                                 |
-| Deadline                   | <answer or Not applicable>                        |
-| Existing material          | <answer, paths, and/or URLs>                      |
-| Content language           | <answer>                                          |
-| NotebookLM output language | <exact locale code>                               |
-| FAQ LLM backend            | <claude_cli, codex_cli, or openhands>             |
-| Assessment enabled         | <true or false>                                   |
-| Strategy enabled           | <true or false>                                   |
-| Labs enabled               | <true or false>                                   |
-| Topic sizing               | <small, medium, or large and the confirmed scope> |
+| Parameter                  | Value                                                  |
+| -------------------------- | ------------------------------------------------------ |
+| Topic                      | <topic>                                                |
+| Topic slug                 | <topic_slug>                                           |
+| Current knowledge          | <answer>                                               |
+| Objective                  | <verbatim answer>                                      |
+| Deadline                   | <answer or Not applicable>                             |
+| Existing material          | <answer, paths, and/or URLs>                           |
+| Content language           | <answer>                                               |
+| NotebookLM output language | <exact locale code>                                    |
+| FAQ LLM backend            | <claude_cli, codex_cli, antigravity_cli, or openhands> |
+| Assessment enabled         | <true or false>                                        |
+| Strategy enabled           | <true or false>                                        |
+| Labs enabled               | <true or false>                                        |
+| Topic sizing               | <small, medium, or large and the confirmed scope>      |
 
 ## Exam facts
 

@@ -38,9 +38,11 @@ topics) yields "GO".
   `Base.metadata.create_all`).
 - **Config:** pydantic-settings; read config from the environment, never hardcode. Every setting
   must have a working default — `.env` is optional, and `.env.example` documents the full surface.
-- **FAQ LLM:** three interchangeable backends under `app/services/lesson_qa/backends/`, selected by
+- **FAQ LLM:** four interchangeable backends under `app/services/lesson_qa/backends/`, selected by
   `LEARNUP_LLM_BACKEND`: `claude_cli` (shells out to `claude -p`, zero app-specific config),
   `codex_cli` (shells out to ephemeral, read-only `codex exec`, reusing the user's Codex login),
+  `antigravity_cli` (shells out to `agy -p`, reusing the user's Antigravity login and model;
+  final-answer delivery, with OS argument-size limits for large prompts),
   and `openhands` (**optional** dep group, `uv sync --group openhands`; LiteLLM, any hosted or local
   provider). The default is `<faq_llm_backend>`, selected during intake. Prompting and parsing live in `lesson_qa/__init__.py` and must stay backend-agnostic;
   a new backend is one module exposing `name` / `check_available()` / `stream()`. Never add

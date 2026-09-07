@@ -47,7 +47,7 @@ learn-up/
     config.py  db.py  models.py  schemas.py  constants.py  badges.py  main.py
     api/       # attempts, catalog, labs, lessons, progress, strategy, topics
     services/  # attempts, grading, mastery, progress, gamification, labs, teaching, strategy
-      lesson_qa/            # FAQ core + backends/{claude_cli,codex_cli,openhands}.py
+      lesson_qa/            # FAQ core + backends/{claude_cli,codex_cli,antigravity_cli,openhands}.py
       topic_transfer/       # verbatim protocol package from assets/topic_transfer/
       topic_transfer_adapter.py # narrow generated catalog/validation adapter
     content/   # seed.py, validate.py, faq.py
@@ -82,7 +82,7 @@ dependencies = [
 [dependency-groups]
 dev = ["pytest>=8.0"]
 notebooklm = ["notebooklm-py[browser]>=0.8.0a3"]  # opt-in; check PyPI for the current version
-# opt-in; only for LEARNUP_LLM_BACKEND=openhands. The claude_cli and codex_cli FAQ
+# opt-in; only for LEARNUP_LLM_BACKEND=openhands. The claude_cli, codex_cli, and antigravity_cli FAQ
 # backends shell out to installed CLIs and need no Python dependency (see backend.md).
 openhands = ["openhands-sdk>=1.36.1", "openhands-tools>=1.36.1"]
 

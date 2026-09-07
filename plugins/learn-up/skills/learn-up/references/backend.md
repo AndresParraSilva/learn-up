@@ -5,7 +5,7 @@
 - Configuration, database, media, topic transfer, and API contract
 - Constants and core algorithms
 - Gamification and select-to-ask FAQ
-- Claude CLI, Codex CLI, and OpenHands backends
+- Claude CLI, Codex CLI, Antigravity CLI, and OpenHands backends
 - Content seeding and validation
 
 Synchronous FastAPI backend. Path operations are plain `def`; the DB session is a sync SQLAlchemy
@@ -631,25 +631,27 @@ A distinctive feature: the learner selects text in a lesson and asks a question;
 LLM, streams the answer back (SSE/streaming response), and appends the Q&A to the lesson's
 `faq_markdown` (persisted back into the source `.md` file so it survives re-seeding).
 
-**Three pluggable LLM backends, chosen by config — never auto-detected.** `lesson_qa` is a package,
+**Four pluggable LLM backends, chosen by config — never auto-detected.** `lesson_qa` is a package,
 not a module: prompting and parsing are backend-agnostic and live in `lesson_qa/__init__.py`, while
 each transport is one small module in `lesson_qa/backends/` exposing exactly three names — `name:
 str`, `check_available() -> None` (raises `LessonQAError` naming both the missing piece _and_ the
 config change that fixes it), and `stream(prompt) -> Iterator[str]`. `stream()` yields text deltas
 when the transport exposes them and **`return`s the authoritative full answer** (read by the core
-via `StopIteration.value`). A final-message-only transport such as `codex_cli` returns without
-yielding deltas.
+via `StopIteration.value`). A final-message-only transport such as `codex_cli` or
+`antigravity_cli` returns without yielding deltas; keep `stream()` a generator so the core
+receives the answer through `StopIteration.value`, not an iterator over string characters.
 `lesson_qa/backends/__init__.py` maps `Settings.llm_backend` to a module, importing it lazily.
 
 | `LEARNUP_LLM_BACKEND` | Transport                                    | Needs                                                            |
 | --------------------- | -------------------------------------------- | ---------------------------------------------------------------- |
 | `claude_cli`          | `claude -p` subprocess                       | the authenticated `claude` CLI on PATH — no app-specific API key |
 | `codex_cli`           | ephemeral, read-only `codex exec` subprocess | an authenticated `codex` CLI on PATH                             |
+| `antigravity_cli`     | `agy -p` subprocess                          | an authenticated `agy` CLI on PATH                               |
 | `openhands`           | `openhands.sdk.LLM` in-process (LiteLLM)     | optional dep group + `.env` config                               |
 
-**Default to the backend selected during intake.** When the user is already running Claude Code or
-Codex, prefer that matching CLI backend so the FAQ works without another signup, app-specific API
-key, or `.env` file. Generate the selected enum value as `Settings.llm_backend`'s default and record
+**Default to the backend selected during intake.** When the user is already running Claude Code,
+Codex, or Antigravity, prefer that matching CLI backend so the FAQ works without another signup,
+app-specific API key, or `.env` file. Generate the selected enum value as `Settings.llm_backend`'s default and record
 it in the generated README and AGENTS.md. Do not universalize one author's environment by always
 defaulting to Claude. Requiring a paid API key before the headline feature works is an adoption
 barrier, so recommend OpenHands only when the user wants a hosted or local LiteLLM-compatible model.
@@ -662,14 +664,15 @@ so nothing needs to report at runtime which one answered.
 
 **Config (`Settings`, all `LEARNUP_`-prefixed, every one with a working default):**
 
-- `llm_backend: LLMBackend` — a `StrEnum` (`claude_cli` | `codex_cli` | `openhands`), so a typo
+- `llm_backend: LLMBackend` — a `StrEnum` (`claude_cli` | `codex_cli` | `antigravity_cli` | `openhands`), so a typo
   fails loudly at startup via pydantic rather than silently selecting something. Its generated
   default is the `faq_llm_backend` recorded in `INTAKE.md`.
 - `claude_cli_model` — a `claude --model` **alias** (`sonnet`/`opus`/`haiku`), default `sonnet`.
   Keep this separate from `llm_model`: a LiteLLM id like `anthropic/claude-sonnet-4-5` is _not_ a
   valid `--model` argument, and sharing one field across different backends silently breaks one of
   them. `codex_cli` deliberately uses the user's Codex configuration and default model, matching a
-  plain `codex exec` invocation; it has no app-specific model setting.
+  plain `codex exec` invocation; it has no app-specific model setting. `antigravity_cli` likewise reuses the user's
+  Antigravity login and configured model without an app-specific model setting.
 - `llm_model` / `llm_api_key` / `llm_base_url` — the `openhands` backend's LiteLLM id (default
   `anthropic/claude-sonnet-4-5`), provider key, and optional custom API base.
 
@@ -735,7 +738,8 @@ cause. Keep the template's approach for generating the answer:
 ### `claude_cli` backend (`lesson_qa/backends/claude_cli.py`)
 
 - `check_available()` is `shutil.which("claude") is not None`; its error message must point at
-  `LEARNUP_LLM_BACKEND=codex_cli` and `LEARNUP_LLM_BACKEND=openhands` as alternatives, not just
+  `LEARNUP_LLM_BACKEND=codex_cli`, `LEARNUP_LLM_BACKEND=antigravity_cli`,
+  and `LEARNUP_LLM_BACKEND=openhands` as alternatives, not just
   report the CLI is missing.
 - Invoke `claude -p --output-format stream-json --include-partial-messages --verbose --tools ""
 --no-session-persistence --model <claude_cli_model> --max-budget-usd <LESSON_QA_MAX_BUDGET_USD>`.
@@ -755,13 +759,14 @@ cause. Keep the template's approach for generating the answer:
   parsed result as authoritative and only raise on nonzero exit when no result was captured —
   otherwise a perfectly good answer gets thrown away.
 - `LESSON_QA_MAX_BUDGET_USD` (~2.00) lives in `app/constants.py`, not `Settings`: it's a spend
-  guard on a subprocess, not a user preference. The `codex_cli` and `openhands` backends have no
+  guard on a subprocess, not a user preference. The `codex_cli`, `antigravity_cli`, and `openhands` backends have no
   equivalent — their own limits apply.
 
 ### `codex_cli` backend (`lesson_qa/backends/codex_cli.py`)
 
-- `check_available()` is `shutil.which("codex") is not None`; its error names both
-  `LEARNUP_LLM_BACKEND=claude_cli` and `LEARNUP_LLM_BACKEND=openhands` as alternatives.
+- `check_available()` is `shutil.which("codex") is not None`; its error names
+  `LEARNUP_LLM_BACKEND=claude_cli`, `LEARNUP_LLM_BACKEND=antigravity_cli`,
+  and `LEARNUP_LLM_BACKEND=openhands` as alternatives.
 - Invoke `codex exec --json --ephemeral --sandbox read-only --skip-git-repo-check -`. The explicit
   `-` makes stdin the complete prompt, which avoids the argv-size ceiling on a full-source pass.
   Use `subprocess.run(..., input=prompt, capture_output=True, text=True,
@@ -779,6 +784,39 @@ timeout=LESSON_QA_TIMEOUT_SECONDS)` so stdin, stdout, and stderr are drained wit
   completes.
 - Reuse the user's existing Codex authentication and configured default model. Do not add API-key
   settings or silently choose a model in the app.
+
+### `antigravity_cli` backend (`lesson_qa/backends/antigravity_cli.py`)
+
+- `name = "antigravity_cli"`; register it lazily alongside the other transports.
+  `check_available()` checks `shutil.which("agy")`; if missing, raise `LessonQAError`
+  explaining how to install/authenticate Antigravity or select `claude_cli`, `codex_cli`,
+  or `openhands` through `LEARNUP_LLM_BACKEND`.
+- Use `agy -p prompt` with the user's existing authentication and configured model.
+  See the [Antigravity headless CLI contract](https://antigravity.google/docs/cli/headless/).
+  Pass an argument list, never a shell command: `["agy", "--output-format", "text",
+"--mode", "plan", "--sandbox", "--disable-slash-commands", "--print-timeout",
+f"{LESSON_QA_TIMEOUT_SECONDS}s", "-p", prompt]`.
+- Run in a fresh `tempfile.TemporaryDirectory` with `subprocess.run(...,
+stdin=subprocess.DEVNULL, capture_output=True, text=True,
+timeout=LESSON_QA_TIMEOUT_SECONDS)`. Ask for an answer solely from the supplied context,
+  without tools. Keep permission checks enabled; do not add
+  `--dangerously-skip-permissions`, resume a conversation, or claim that terminal sandboxing
+  disables every agent tool. These flags do not guarantee absence of host-side session storage.
+- In text mode, stdout is the response and stderr contains diagnostics. Require exit code zero
+  and non-whitespace stdout, then return stdout as the authoritative full answer without yielding
+  deltas. The shared core handles title parsing, the insufficient-context sentinel, the final
+  SSE result, and persistence exactly as for the other backends.
+- Convert launch errors, timeouts, nonzero exits (including authentication, permission, and
+  connectivity failures), and empty responses into `LessonQAError`. Include useful stderr
+  diagnostics without logging the prompt or source material. Never persist a partial answer
+  from a failed process or invoke another backend.
+- **Prompt-size limitation:** `-p` requires a prompt argument; bare `-p` does not read stdin.
+  This transport is subject to OS argument-size limits, particularly for full-topic context.
+  Surface an oversized argument failure (`OSError` with `errno.E2BIG`, or the platform's
+  equivalent) with guidance to use narrower context or explicitly configure another backend.
+  Never truncate the prompt, split it into independent answers, or assume `-p -` reads stdin.
+  Antigravity's separate NDJSON input mode requires a different transport contract; it is not
+  a drop-in stdin option for this `agy -p` implementation.
 
 ### `openhands` backend (`lesson_qa/backends/openhands.py`)
 
@@ -827,8 +865,8 @@ import ...` line: `OPENHANDS_SUPPRESS_BANNER=1` and `LOG_AUTO_CONFIG=false`. `se
 
 ### Documenting and testing the backends
 
-- **README must present all three backends as first-class**, with a comparison table (backend / what
-  it needs / when to pick it) and copy-pasteable `.env` blocks for both CLI backends, a hosted
+- **README must present all four backends as first-class**, with a comparison table (backend / what
+  it needs / when to pick it) and copy-pasteable `.env` blocks for all three CLI backends, a hosted
   provider, and a **fully local model with no subscription and no paid API**
   (e.g. Ollama — `LEARNUP_LLM_MODEL=ollama_chat/llama3`, `LEARNUP_LLM_BASE_URL=http://localhost:11434`,
   placeholder key). The local path is worth calling out explicitly: because the FAQ answers strictly
@@ -836,15 +874,20 @@ import ...` line: `OPENHANDS_SUPPRESS_BANNER=1` and `LOG_AUTO_CONFIG=false`. `se
   model is generally good enough, which makes the whole app usable with no LLM spend whatsoever.
 - **Test the shared core once, parametrized over every backend, with only the transport faked** —
   fake `subprocess.Popen` (yielding real `stream-json` lines) for `claude_cli`, `subprocess.run`
-  (returning real Codex JSONL item events) for `codex_cli`, and `openhands.sdk.LLM` for `openhands`,
+  (returning real Codex JSONL item events) for `codex_cli`, `subprocess.run`
+  (returning text stdout) for `antigravity_cli`, and `openhands.sdk.LLM` for `openhands`,
   then assert identical `result`/`insufficient` outcomes from `ask(..., backend=...)`; assert delta
-  pass-through for the two streaming transports and no deltas for Codex. This pins the invariant
-  that the three backends are interchangeable at the app contract even though Codex exposes only a
-  final message. Give `ask()` an optional
+  pass-through for the two streaming transports and no deltas for Codex or Antigravity. This pins
+  the invariant that the four backends are interchangeable at the app contract even though the
+  Codex and Antigravity transports return only a final message. Give `ask()` an optional
   `backend` parameter for exactly this (it also keeps tests independent of ambient `.env`), and
   guard SDK-dependent tests with `pytest.importorskip("openhands.sdk")` so the suite still passes on
   a default, CLI-only install. Cover the config errors too: each backend's unavailability message
-  must name the escape hatch, and a broken backend must never invoke another one.
+  must name the escape hatch, and a broken backend must never invoke another one. For Antigravity,
+  also cover timeout, nonzero exit with partial stdout, empty stdout, argument-size failure, prompt-as-one-argument (including shell
+  metacharacters), and temporary working-directory cleanup. Document
+  `LEARNUP_LLM_BACKEND=antigravity_cli` in `.env.example` and the generated README, including
+  authentication with `agy`, final-answer delivery, and the argument-size limitation.
 
 **`selected_text` is part of the FAQ entry, not just the prompt.** The learner's highlighted passage
 (`QuestionAskRequest.selected_text`) is used to build the LLM prompt, but it must **also** be
