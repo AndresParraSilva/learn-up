@@ -26,7 +26,7 @@ Keep changes focused. For skill workflow changes:
    policy in host metadata or the installer.
 4. Update references instead of duplicating long guidance in `SKILL.md`.
 5. Keep portable metadata in root `plugin.json`, Codex-only metadata in
-   `.codex-plugin/plugin.json`, and synchronize shared release fields between them.
+   `plugins/learn-up/.codex-plugin/plugin.json`, and synchronize shared release fields between them.
 6. Validate the Agent Plugins manifest with `python3 scripts/validate_agent_plugin.py`.
 7. Test the installer for both supported agents and validate the canonical skill folder with
    `uv run python scripts/quick_validate.py skills/learn-up`.
@@ -34,3 +34,12 @@ Keep changes focused. For skill workflow changes:
 
 Do not weaken a validator to make malformed content pass. Fix the content or the implementation
 that generated it.
+
+## Codex marketplace maintenance
+
+Edit only the canonical `skills/learn-up/` payload. Run `python3 scripts/sync_codex_plugin.py`
+after changes; commit the generated `plugins/learn-up/skills/learn-up/` copy with the source.
+The root `plugin.json` remains the portable Agent Plugins manifest; the nested Codex manifest
+adds host-specific UI fields. Shared metadata must match. No manual installer destinations change.
+
+See [the release procedure](docs/releasing.md) for validation, installation, updates, and rollback.

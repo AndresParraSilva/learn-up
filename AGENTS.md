@@ -13,7 +13,7 @@ agent host.
 Preserve these repository guardrails:
 
 - Keep the Codex and Claude Code installations derived from the same canonical skill source.
-- Keep root `plugin.json` portable and keep Codex-only fields in `.codex-plugin/plugin.json`.
+- Keep root `plugin.json` portable and keep Codex-only fields in `plugins/learn-up/.codex-plugin/plugin.json`.
 - Keep installation explicit, inspectable, and safe: dry runs must not write, existing
   installations must not be overwritten by default, and `--force` must preserve a backup.
 - Keep host-specific transformations narrow and preserve the source tree.
@@ -25,9 +25,9 @@ Preserve these repository guardrails:
 
 This repository is a source distribution, not an application runtime.
 
-- Portable plugin metadata: root `plugin.json`, currently version `0.3.2`, targeting Agent Plugins
+- Portable plugin metadata: root `plugin.json`, currently version `0.4.0`, targeting Agent Plugins
   Specification 1.0.0 and its closed manifest schema.
-- Codex plugin metadata: `.codex-plugin/plugin.json`, also version `0.3.2`, plus Codex interface
+- Codex plugin metadata: `plugins/learn-up/.codex-plugin/plugin.json`, also version `0.4.0`, plus Codex interface
   metadata in `skills/learn-up/agents/openai.yaml`.
 - Canonical skill: Markdown with YAML frontmatter in `skills/learn-up/SKILL.md`; detailed Markdown
   guidance is loaded progressively from `skills/learn-up/references/`.
@@ -41,7 +41,7 @@ This repository is a source distribution, not an application runtime.
 - Distributable skill payload: references, templates, scripts, components, styles, and brand assets
   under `skills/learn-up/`. These files do not define this repository's runtime stack.
 - Runtime dependencies: none at this repository root. The root npm manifest is development-only;
-  no database, Docker definition, or CI workflow is present.
+  no database or Docker definition is present. GitHub Actions validates Linux and Windows.
 
 ## 2. Coding Standards
 
@@ -66,7 +66,8 @@ This repository is a source distribution, not an application runtime.
 ```text
 /
 ├── plugin.json                     Portable Agent Plugins 1.0.0 manifest
-├── .codex-plugin/plugin.json       Codex plugin manifest and marketplace-facing metadata
+├── .agents/plugins/marketplace.json  Codex marketplace catalog
+├── plugins/learn-up/                Generated skill and authoritative Codex manifest
 ├── install.py                      Stable manual-installer entry point
 ├── learn_up_installer/             Tested installer implementation
 ├── pyproject.toml                  Python, Ruff, pytest, and coverage configuration
@@ -94,7 +95,7 @@ This repository is a source distribution, not an application runtime.
 
 Put portable package metadata in root `plugin.json`, cross-host workflow rules in `SKILL.md`,
 detailed skill guidance in the matching reference, Codex-only UI metadata in
-`.codex-plugin/plugin.json` and `agents/openai.yaml`, installation behavior in
+`plugins/learn-up/.codex-plugin/plugin.json` and `agents/openai.yaml`, installation behavior in
 `learn_up_installer/`, and distributable files in `assets/`. Put repository-level tests under
 `tests/` and name test modules and functions with the `test_` prefix.
 
@@ -104,7 +105,7 @@ detailed skill guidance in the matching reference, Codex-only UI metadata in
 - Treat root `plugin.json` as the closed, portable Agent Plugins manifest. Do not add component
   paths or client-specific fields to it; Agent Plugins discovers skills from fixed `skills/`
   locations.
-- Keep Codex-only manifest fields in `.codex-plugin/plugin.json` and synchronize shared package
+- Keep Codex-only manifest fields in `plugins/learn-up/.codex-plugin/plugin.json` and synchronize shared package
   metadata with root `plugin.json`.
 - Treat `skills/learn-up/` as the canonical payload. The installer may transform only the
   host-specific surfaces documented by the installation design.
@@ -117,7 +118,7 @@ detailed skill guidance in the matching reference, Codex-only UI metadata in
 
 The repository uses pytest and pytest-cov, configured in `pyproject.toml`. Tests live under
 `tests/`. The default run measures statement and branch coverage for `learn_up_installer/`, writes
-`coverage.json`, and fails below 90%. The current verified result is 64 passing tests and 97%
+`coverage.json`, and fails below 90%. The current verified result is 99 passing tests and 97%
 displayed coverage (96.55% total) on Python 3.14.6.
 
 Installer tests must use pytest's `tmp_path` and `monkeypatch` fixtures so they never write to the
@@ -192,7 +193,16 @@ Validate the plugin manifest's JSON syntax:
 
 ```bash
 python3 -m json.tool plugin.json >/dev/null
-python3 -m json.tool .codex-plugin/plugin.json >/dev/null
+python3 -m json.tool plugins/learn-up/.codex-plugin/plugin.json >/dev/null
+```
+
+Synchronize and validate the Codex marketplace package:
+
+```bash
+python3 scripts/sync_codex_plugin.py
+python3 scripts/sync_codex_plugin.py --check
+python3 scripts/validate_marketplace.py
+python3 scripts/smoke_codex_marketplace.py
 ```
 
 Validate Agent Plugins 1.0.0 packaging:
@@ -246,7 +256,7 @@ invoke `$learn-up <topic>` in Codex or `/learn-up <topic>` in Claude Code.
 ## 7. Git Operations
 
 The repository uses `main`, has existing Conventional Commit history, and has an `origin` remote.
-No CI workflow or pull-request template is currently present.
+GitHub Actions validates distribution changes; no pull-request template is present.
 
 - Use Conventional Commits in imperative English, for example `feat: add learn-up skill`.
 - Work directly on `main` by default. Short-lived branches are optional when a change benefits from

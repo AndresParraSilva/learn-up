@@ -12,7 +12,7 @@ from scripts.validate_agent_plugin import ALLOWED_FIELDS, SCHEMA_URI, validate_m
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PORTABLE_MANIFEST = REPO_ROOT / "plugin.json"
-CODEX_MANIFEST = REPO_ROOT / ".codex-plugin/plugin.json"
+CODEX_MANIFEST = REPO_ROOT / "plugins/learn-up/.codex-plugin/plugin.json"
 PROJECT_MANIFEST = REPO_ROOT / "pyproject.toml"
 LOCKFILE = REPO_ROOT / "uv.lock"
 
@@ -75,7 +75,7 @@ def test_release_version_is_synchronized() -> None:
         codex["version"],
         read_project_version(PROJECT_MANIFEST),
         read_project_version(LOCKFILE, "learn-up-skill"),
-    } == {"0.3.2"}
+    } == {"0.4.0"}
 
 
 def test_portable_skill_uses_fixed_agent_plugins_discovery_layout() -> None:

@@ -70,18 +70,32 @@ Gemini Notebook videos are optional. Their automated path uses an unofficial thi
 for undocumented Google APIs and may break when Google changes them. The rest of the study app does
 not depend on video generation.
 
-## 60-second install
-
-Paste the appropriate request into your coding agent.
+## Install
 
 ### Codex
 
-```text
-Install the learn-up plugin from
-https://github.com/AndresParraSilva/learn-up
-for my user account. Preserve any existing installation as a backup, then verify that I can invoke
-it with $learn-up.
+Add the Git-backed marketplace, then install its plugin:
+
+```bash
+codex plugin marketplace add AndresParraSilva/learn-up --ref main
+codex plugin add learn-up@learn-up
 ```
+
+The **marketplace** is the Git-backed catalog, the **plugin** is the installable package, and the
+**skill** is the workflow that package contributes. The CLI commands below were verified with
+Codex CLI 0.153.4 on Linux. See [OpenAI's plugin documentation](https://learn.chatgpt.com/docs/plugins)
+for the plugin UI; supported clients also expose discovery through `/plugins`.
+
+#### Verify installation
+
+```bash
+codex plugin marketplace list
+codex plugin list --marketplace learn-up --json
+```
+
+Confirm `learn-up@learn-up` is installed and enabled, with version `0.4.0` for this release.
+Open a new thread and invoke `$learn-up <topic>`. Seeing the contributed skill in `/skills` is
+normal. If your client does not recognize these CLI commands, update Codex first.
 
 ### Claude Code
 
@@ -92,7 +106,7 @@ as a user-level skill. Preserve any existing installation as a backup, then veri
 invoke it with /learn-up.
 ```
 
-The Codex package is defined by `.codex-plugin/plugin.json`. Claude Code installs the shared
+The Codex package is defined by `plugins/learn-up/.codex-plugin/plugin.json`. Claude Code installs the shared
 `skills/learn-up` folder directly. Agent Plugins clients load the repository root, validate
 `plugin.json`, and discover that same skill from the standard `skills/` location. Consult the
 client's documentation for its directory-install command and invocation syntax.
@@ -123,50 +137,64 @@ python install.py --agent codex --scope project --project-dir /path/to/project
 python install.py --agent claude-code --scope project --project-dir /path/to/project
 ```
 
-## Upgrade
+## Updating learn-up
 
-To let your coding agent update a user-level installation from GitHub, paste:
+### Codex marketplace update
 
-```text
-Update my installed learn-up plugin or skill to the latest release from
-https://github.com/AndresParraSilva/learn-up. Preserve the existing installation as a backup,
-verify the updated skill, and tell me when I should start a new thread.
+```bash
+codex plugin marketplace upgrade learn-up
+codex plugin add learn-up@learn-up
+codex plugin list --marketplace learn-up --json
 ```
 
-For a manual user-level upgrade from an existing clone:
+The first command fetches the configured Git ref; the second reinstalls the plugin from that
+snapshot. Use this explicit sequence rather than relying on background refresh. Open a new
+conversation afterward and verify the installed version. Release versions change when the payload
+changes, allowing Codex to refresh its versioned cache. Users do not need to edit cache files.
+
+If the old version remains, check the configured ref with `codex plugin marketplace list`, repeat
+upgrade and installation, then start a new thread. If necessary, use
+`codex plugin remove learn-up@learn-up` followed by `codex plugin add learn-up@learn-up`.
+If the entry disappears or you previously selected another branch/tag, remove the configured
+marketplace with `codex plugin marketplace remove learn-up`, then add it again using the install
+command above with `--ref main`. This restores the intended public release source.
+
+### Claude Code update
+
+Ask Claude Code to update the skill from `skills/learn-up` in this repository, preserving the
+existing installation as a backup. Start a new conversation after installation.
+
+### Manual installer update
+
+Both manual installers remain supported for reproducible installations:
 
 ```bash
 cd /path/to/learn-up
 git pull --ff-only
-
-# Codex
 python install.py --agent codex --force
-
-# Claude Code
+# Or, for Claude Code:
 python install.py --agent claude-code --force
 ```
 
-For a project-scoped installation, use the same updated clone and identify the target project:
+For project scope, add `--scope project --project-dir /path/to/project`. The installer backs up the
+existing skill before replacement. Other Agent Plugins clients should use their documented
+refresh or reinstall command.
 
-```bash
-python install.py --agent codex --scope project --project-dir /path/to/project --force
-python install.py --agent claude-code --scope project --project-dir /path/to/project --force
-```
+Updating the plugin affects future skill runs. It does not automatically patch an existing study
+app; ask your coding agent to update that app explicitly.
 
-Once `learn-up` is accepted into the OpenAI-curated Codex Marketplace, refresh that marketplace and
-reinstall the plugin with:
+## Migrating from an older Codex installation
 
-```bash
-codex plugin marketplace upgrade openai-curated
-codex plugin add learn-up@openai-curated
-```
+Before installing the marketplace plugin, locate any previous standalone `learn-up` skill in
+`~/.agents/skills/learn-up`, `~/.codex/skills/learn-up`, or the project's `.agents/skills/learn-up`.
+On Windows, use the corresponding directories under your user profile. Move the old skill to a
+backup directory **outside all skill discovery directories**, preserving any local customization.
+Do not leave two active copies: a standalone skill may shadow the plugin's skill.
 
-Start a new Codex or Claude Code thread after upgrading so the client loads the refreshed skill.
-Other Agent Plugins clients should use their documented refresh or reinstall command.
-
-Upgrading the plugin updates future skill runs. It does not automatically patch files already
-copied into an existing generated learn-up app; ask your coding agent to update that app explicitly
-when you want it to adopt newer frontend, backend, or tooling assets.
+If you installed the older root-level plugin, find its exact identifier with `codex plugin list`,
+back up customizations, and remove that old plugin through `codex plugin remove <identifier>`.
+Then follow the marketplace installation steps and open a new thread. Keep the backup until the
+new installation works. The installer itself never removes old installations automatically.
 
 ## Create your first study app
 
@@ -269,7 +297,9 @@ and [Codex skill documentation](https://learn.chatgpt.com/docs/build-skills) for
 
 ```text
 plugin.json                   Portable Agent Plugins 1.0.0 manifest
-.codex-plugin/plugin.json     Codex-specific plugin manifest and interface
+.agents/plugins/marketplace.json        Git-backed Codex marketplace catalog
+plugins/learn-up/.codex-plugin/plugin.json  Authoritative Codex plugin manifest
+plugins/learn-up/skills/learn-up/           Generated copy; do not edit
 skills/learn-up/
 ├── SKILL.md                  Core phased workflow
 ├── agents/openai.yaml        Codex/ChatGPT display and invocation policy

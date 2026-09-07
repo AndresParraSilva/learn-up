@@ -1,0 +1,40 @@
+name: Validate distribution
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: uv sync --locked --group dev
+      - run: npm ci
+      - run: uv run python scripts/validate_agent_plugin.py
+      - run: uv run python scripts/validate_marketplace.py
+      - run: uv run python scripts/sync_codex_plugin.py --check
+      - run: uv run python scripts/quick_validate.py skills/learn-up
+      - run: uv run python -m compileall -q install.py learn_up_installer scripts
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: npm run format:check
+      - run: uv run pytest
+      - run: npm install --global @openai/codex@0.153.4
+      - run: uv run python scripts/smoke_codex_marketplace.py
+      - run: uv run python install.py --agent codex --scope project --project-dir . --dry-run
+      - run: uv run python install.py --agent claude-code --scope project --project-dir . --dry-run
+      - if: startsWith(github.ref, 'refs/tags/')
+        run: uv run python scripts/check_release_tag.py ${{ github.ref_name }}
