@@ -586,7 +586,9 @@ post-submit feedback, `ReviewPage`'s per-question breakdown, `StrategyDrillPage`
 choice lists) must apply the same display rule: per
 `references/content-schema.md`'s authoring convention, every correct choice's `explanation` is
 authored starting with the literal prefix `Correct — `. When rendering a **correct choice the
-learner did not select**, strip that leading `Correct — ` before display — a choice the learner
+learner did not select**, strip that leading `Correct — ` and capitalize the first word of the
+remaining explanation before display. For example, `Correct — this follows the rule.` becomes
+`This follows the rule.` Preserve Markdown formatting and the rest of the text. A choice the learner
 didn't pick shouldn't visually assert "Correct" at the start of its own explanation line, it should
 just read as the reason it was the right answer. Leave the prefix intact for a correct choice that
 **was** selected, and never touch a distractor's explanation (distractors are never authored with
@@ -596,10 +598,16 @@ Implement this as one small shared helper (e.g. `stripCorrectPrefix(explanation,
 isSelected)`), not three copy-pasted conditionals — `QuizRunner` knows "selected" from its own local
 answer state at submit time; `ReviewPage`/`StrategyDrillPage` get it from `selected_choice_ids` /
 `GradedChoice` equivalents already in the API response (`references/backend.md`'s API contract).
-Do the stripping client-side, at render time only — never mutate the stored/served
+Do the stripping and capitalization client-side in that shared helper, at render time only — never mutate the stored/served
 `explanation_markdown` itself, so the canonical authored text (with its prefix) stays the single
 source of truth and the same API response renders correctly regardless of which choices a
 particular learner happened to select.
+
+Verify that an unselected correct choice with a lowercase first word displays with that word
+capitalized after prefix removal, including when the word is wrapped in Markdown emphasis or a
+link. Check the same behavior in quiz, mock, strategy-drill, and review feedback. Already-capitalized
+text must stay unchanged, and selected correct choices and distractors must retain their original
+explanations.
 
 ## Styling
 
