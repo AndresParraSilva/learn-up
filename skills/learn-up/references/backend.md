@@ -785,6 +785,45 @@ timeout=LESSON_QA_TIMEOUT_SECONDS)` so stdin, stdout, and stderr are drained wit
 - Reuse the user's existing Codex authentication and configured default model. Do not add API-key
   settings or silently choose a model in the app.
 
+#### Troubleshooting: model requires a newer Codex version
+
+Context questions can fail with `codex CLI exited with 1` and a message such as
+`The 'gpt-6-astra' model requires a newer version of Codex` even when `codex --version` in your
+terminal reports a recent version. A backend service has its own PATH, which may resolve an older
+Codex installation. With nvm, different Node installations can each have their own Codex CLI.
+
+For a Linux installation using a systemd user service:
+
+1. Check the terminal's Codex executable and version, then inspect the backend service:
+
+   ```bash
+   command -v codex
+   codex --version
+   systemctl --user cat learn-up-backend.service
+   ```
+
+2. Find the service file shown by `systemctl --user cat`. In its `Environment=PATH=...` entry,
+   replace the old Node `bin` directory with the directory containing the updated `codex`
+   executable. Preserve the other PATH entries. For example, if `command -v codex` reports an
+   executable under a newer nvm Node version:
+
+   ```diff
+   -Environment=PATH=%h/.nvm/versions/node/<old-version>/bin:/usr/local/bin:/usr/bin:/bin
+   +Environment=PATH=%h/.nvm/versions/node/<current-version>/bin:/usr/local/bin:/usr/bin:/bin
+   ```
+
+3. Reload systemd, restart the backend, check its status, and retry the context question:
+
+   ```bash
+   systemctl --user daemon-reload
+   systemctl --user restart learn-up-backend.service
+   systemctl --user status learn-up-backend.service --no-pager
+   ```
+
+Use your installation's service name and configuration path in place of the example above. After
+future Node upgrades, recheck the service's PATH: updating Codex in one nvm installation does not
+update copies installed under other Node versions.
+
 ### `antigravity_cli` backend (`lesson_qa/backends/antigravity_cli.py`)
 
 - `name = "antigravity_cli"`; register it lazily alongside the other transports.
