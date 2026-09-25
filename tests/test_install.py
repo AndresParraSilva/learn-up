@@ -300,3 +300,39 @@ def test_cli_process_uses_zero_and_nonzero_exit_codes(tmp_path: Path) -> None:
     assert failure.returncode == 1
     assert failure.stdout == ""
     assert "Project directory does not exist" in failure.stderr
+
+
+def test_claude_force_preserves_existing_host_policy(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    target = install.install(args(agent="claude-code", project_dir=project))
+    skill = target / "SKILL.md"
+    skill.write_text(
+        skill.read_text().replace("\n---\n", "\nallowed-tools: Bash, Read\n---\n", 1)
+    )
+
+    install.install(args(agent="claude-code", project_dir=project, force=True))
+
+    installed = skill.read_text()
+    assert "\nallowed-tools: Bash, Read\n" in installed
+    assert installed.count("disable-model-invocation: true") == 1
+    backup = next(target.parent.glob("learn-up.backup-*"))
+    assert "\nallowed-tools: Bash, Read\n" in (backup / "SKILL.md").read_text()
+    assert "allowed-tools" not in (CANONICAL_SKILL / "SKILL.md").read_text()
+
+
+def test_failed_claude_force_restores_prior_installation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    target = install.install(args(agent="claude-code", project_dir=project))
+    before = tree_snapshot(target)
+
+    def fail(_skill_md: Path, _previous_skill_md: Path | None = None) -> None:
+        raise ValueError("bad host policy")
+
+    monkeypatch.setattr(install, "add_claude_policy", fail)
+    with pytest.raises(ValueError, match="bad host policy"):
+        install.install(args(agent="claude-code", project_dir=project, force=True))
+    assert tree_snapshot(target) == before

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Quick validation script for Agent Skills."""
 
-# Modified from OpenAI's built-in skill-creator validator for attribution and formatting only;
-# validation behavior is unchanged.
+# Adapted from OpenAI's built-in skill-creator validator. The optional Claude Code mode
+# accepts only its documented manual-invocation field; the canonical mode stays strict.
 # Licensed under Apache-2.0; see OPENAI_SKILL_VALIDATOR_LICENSE.txt.
 
 import re
@@ -14,7 +14,7 @@ import yaml
 MAX_SKILL_NAME_LENGTH = 64
 
 
-def validate_skill(skill_path):
+def validate_skill(skill_path, *, allow_claude_policy=False):
     """Basic validation of a skill."""
     skill_path = Path(skill_path)
 
@@ -40,6 +40,13 @@ def validate_skill(skill_path):
         return False, f"Invalid YAML in frontmatter: {exc}"
 
     allowed_properties = {"name", "description", "license", "allowed-tools", "metadata"}
+
+    if allow_claude_policy:
+        allowed_properties.add("disable-model-invocation")
+        if "disable-model-invocation" in frontmatter and not isinstance(
+            frontmatter["disable-model-invocation"], bool
+        ):
+            return False, "disable-model-invocation must be a boolean"
 
     unexpected_keys = set(frontmatter.keys()) - allowed_properties
     if unexpected_keys:
@@ -97,10 +104,12 @@ def validate_skill(skill_path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python quick_validate.py <skill_directory>")
+    if len(sys.argv) not in (2, 3) or (
+        len(sys.argv) == 3 and sys.argv[2] != "--claude-code"
+    ):
+        print("Usage: python quick_validate.py <skill_directory> [--claude-code]")
         sys.exit(1)
 
-    valid, message = validate_skill(sys.argv[1])
+    valid, message = validate_skill(sys.argv[1], allow_claude_policy=len(sys.argv) == 3)
     print(message)
     sys.exit(0 if valid else 1)

@@ -86,6 +86,18 @@ export function TopicTransferPanel({ topicSlug, onImported }: Props) {
             {report.ignored.length}. Skipped Q&amp;A:{" "}
             {report.skipped_q_and_a.length}.
           </p>
+          <details>
+            <summary>
+              Question IDs migrated: {report.id_migrations.length}
+            </summary>
+            <ul>
+              {report.id_migrations.map((item) => (
+                <li key={`${item.kind}:${item.path}:${item.old_id}`}>
+                  {item.kind} ({item.path}): {item.old_id} → {item.new_id}
+                </li>
+              ))}
+            </ul>
+          </details>
           {report.status === "validated" && (
             <button
               disabled={busy || file === null}

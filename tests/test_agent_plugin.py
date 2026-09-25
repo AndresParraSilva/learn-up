@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 from scripts.validate_agent_plugin import ALLOWED_FIELDS, SCHEMA_URI, validate_manifest
 
@@ -71,11 +72,14 @@ def test_release_version_is_synchronized() -> None:
     codex = load_manifest(CODEX_MANIFEST)
 
     assert {
+        yaml.safe_load(
+            (REPO_ROOT / "skills/learn-up/SKILL.md").read_text().split("---")[1]
+        )["metadata"]["version"],
         portable["version"],
         codex["version"],
         read_project_version(PROJECT_MANIFEST),
         read_project_version(LOCKFILE, "learn-up-skill"),
-    } == {"0.4.1"}
+    } == {"1.0.0"}
 
 
 def test_portable_skill_uses_fixed_agent_plugins_discovery_layout() -> None:
@@ -114,3 +118,20 @@ def test_offline_validator_cli_passes() -> None:
     assert result.returncode == 0
     assert "Agent Plugins 1.0.0 validation passed" in result.stdout
     assert result.stderr == ""
+
+
+@pytest.mark.parametrize(
+    "value", [None, 1, "1.0", "v1.0.0", "01.0.0", "1.0.0-beta", "1.0.0\n"]
+)
+def test_skill_version_rejects_malformed_metadata(value) -> None:
+    sys.path.insert(0, str(REPO_ROOT / "skills/learn-up/assets"))
+    from skill_version import parse_skill_version
+
+    with pytest.raises(ValueError):
+        parse_skill_version(value)
+
+
+def test_skill_version_numeric_order() -> None:
+    from skill_version import parse_skill_version
+
+    assert parse_skill_version("1.10.0") > parse_skill_version("1.9.0")

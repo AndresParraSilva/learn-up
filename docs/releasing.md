@@ -6,7 +6,7 @@ fields. `skills/learn-up/` is the only human-maintained skill payload. The marke
 `main` in the documented installation command; a user can explicitly select another Git ref.
 
 Use semantic versions: patch for compatible fixes, minor for compatible capabilities, major for
-breaking behavior or installation changes. This migration is **0.4.0**. Update the two manifests,
+breaking behavior or installation changes. This release is **1.0.0**. Update the two manifests,
 `pyproject.toml`, the version assertion in `tests/test_agent_plugin.py`, then run `uv lock`.
 Do not add a development cachebuster suffix to a published release; publish a new version when
 contents change.
@@ -29,7 +29,7 @@ uv run pytest
 uv run crap4py
 python3 install.py --agent codex --scope project --project-dir . --dry-run
 python3 install.py --agent claude-code --scope project --project-dir . --dry-run
-python3 scripts/check_release_tag.py v0.4.0
+python3 scripts/check_release_tag.py v1.0.0
 python3 scripts/smoke_codex_marketplace.py
 git diff --check
 ```
@@ -74,8 +74,8 @@ tag that commit, then push both refs:
 
 ```bash
 git commit -m "feat: distribute learn-up through a Codex marketplace"
-git tag v0.4.0
-git push origin main v0.4.0
+git tag v1.0.0
+git push origin main v1.0.0
 ```
 
 Do not include local plans, private files, or generated application output. If the project adopts
@@ -96,3 +96,12 @@ codex plugin add learn-up@learn-up
 Open a new thread and verify the version. To resume upgrades, remove/re-add the marketplace with
 `--ref main` and reinstall. Document affected versions and the fix in release notes. Pre-marketplace
 versions require the documented manual installer and a backed-up standalone skill instead.
+
+## Skill and app compatibility
+
+Keep `SKILL.md` metadata.version, both manifests and `pyproject.toml` equal. A skill major declares
+a new app/topic compatibility family; new apps start at `<skill major>.0`. A breaking installation
+change that requires a skill major still starts that family, even when content migration is a no-op.
+Every major needs a documented content/media migration in `references/upgrade.md` and a prominent
+CHANGELOG notice. Skill minor releases must never produce content unreadable by older same-major
+apps. App-local changes increment only the app minor; incompatible changes go upstream.

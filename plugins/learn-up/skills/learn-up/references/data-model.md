@@ -119,3 +119,7 @@ Attempt 1─* {AttemptQuestion, Response}; Response 1─* ResponseChoice; User 1
 UserBadge, LabAttempt}; Topic 1─* {Domain, MockExam, Attempt} and (via Domain→Objective) all content.
 
 Use `selectinload` for eager loading in read paths (sync SQLAlchemy supports it).
+
+`Question.external_id` and `StrategyQuestion.external_id` are globally unique, stable identifiers.
+Prefix both with their owning topic slug. Resolve ownership through database relationships; never
+reassign a colliding id. Database upgrades preserve primary keys and all learner history links.

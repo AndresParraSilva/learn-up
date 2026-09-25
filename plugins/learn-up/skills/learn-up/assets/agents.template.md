@@ -30,6 +30,8 @@ topics) yields "GO".
 ## 2. Stack
 
 - **Language/runtime:** Python **3.12+**, managed with **`uv`**.
+- **Generating/upgrading skill:** `<skill_version>` recorded in `[tool.learn-up] skill_version`
+  in `pyproject.toml` and displayed on About.
 - **App compatibility version:** `<app_version>` in `pyproject.toml`; use two-part `MAJOR.MINOR`.
 - **Backend:** FastAPI (sync path ops) serving a JSON API with loopback Host, Origin/Fetch-Metadata,
   and token validation; uvicorn for dev.
@@ -114,17 +116,16 @@ Keep `main.py` importing `app.main:app`.
 - Increment `MINOR` for every backward-compatible update. A change is backward compatible only when
   an existing installation's `content/` and `media/` directories can be copied into the updated app
   without transformation and still seed, validate, render lessons, and play videos unchanged.
-- Increment `MAJOR` and reset `MINOR` to `0` when that copy workflow does not work—for example, when
-  a content schema, required field, directory layout, filename/path convention, media lookup, or
-  seeding contract requires migration, rewriting, relocation, or regeneration.
+- Never bump the app `MAJOR` locally. It is inherited from the generating/upgrading skill.
+  Propose content/media incompatibilities upstream; apply only a documented skill major migration,
+  which resets app minor to zero. New apps start at the skill major with minor zero.
 - Verify compatibility with copied `content/` and `media/` in the live smoke test; a successful
   frontend build is not sufficient evidence.
 - Never expose credentials on About. Record configuration choices and secret environment-variable
   names, not secret values.
 - Treat the `.learnup.zip` format and existing exported archives as part of content/media
-  compatibility. Increment `MAJOR` if a previous archive needs migration or transformation before
-  import; a backward-compatible archive-format extension increments its format minor and app
-  `MINOR`.
+  compatibility. Accept same-major packages regardless of minor. Skill minor releases must preserve
+  readability in older same-major apps; incompatible changes require an upstream skill major.
 - Import provenance belongs in the topic changelog/About. Never overwrite the destination root
   `ABOUT.md` with the source app's archived About snapshot. Preserve imported `INTAKE.md` as the
   source author's configuration. Record the recipient's backend and app constraints separately

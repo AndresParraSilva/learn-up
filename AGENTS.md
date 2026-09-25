@@ -16,7 +16,8 @@ Preserve these repository guardrails:
 - Keep root `plugin.json` portable and keep Codex-only fields in `plugins/learn-up/.codex-plugin/plugin.json`.
 - Keep installation explicit, inspectable, and safe: dry runs must not write, existing
   installations must not be overwritten by default, and `--force` must preserve a backup.
-- Keep host-specific transformations narrow and preserve the source tree.
+- Keep host-specific transformations narrow and preserve the source tree. On Claude updates, carry
+  forward existing `disable-model-invocation` and `allowed-tools` frontmatter policies.
 - Keep repository instructions about packaging, installation, validation, and maintenance. Put
   skill behavior in `skills/learn-up/SKILL.md` and its routed references instead of duplicating it
   here.
@@ -25,9 +26,9 @@ Preserve these repository guardrails:
 
 This repository is a source distribution, not an application runtime.
 
-- Portable plugin metadata: root `plugin.json`, currently version `0.4.1`, targeting Agent Plugins
+- Portable plugin metadata: root `plugin.json`, currently version `1.0.0`, targeting Agent Plugins
   Specification 1.0.0 and its closed manifest schema.
-- Codex plugin metadata: `plugins/learn-up/.codex-plugin/plugin.json`, also version `0.4.1`, plus Codex interface
+- Codex plugin metadata: `plugins/learn-up/.codex-plugin/plugin.json`, also version `1.0.0`, plus Codex interface
   metadata in `skills/learn-up/agents/openai.yaml`.
 - Canonical skill: Markdown with YAML frontmatter in `skills/learn-up/SKILL.md`; detailed Markdown
   guidance is loaded progressively from `skills/learn-up/references/`.
@@ -118,8 +119,8 @@ detailed skill guidance in the matching reference, Codex-only UI metadata in
 
 The repository uses pytest and pytest-cov, configured in `pyproject.toml`. Tests live under
 `tests/`. The default run measures statement and branch coverage for `learn_up_installer/`, writes
-`coverage.json`, and fails below 90%. The current verified result is 99 passing tests and 97%
-displayed coverage (96.55% total) on Python 3.14.6.
+`coverage.json`, and fails below 90%. The current verified result is 140 passing tests and 92%
+displayed coverage (91.91% total) on Python 3.14.6.
 
 Installer tests must use pytest's `tmp_path` and `monkeypatch` fixtures so they never write to the
 real `~/.agents` or `~/.claude` directories. Cover user/project destination resolution, invalid
@@ -142,12 +143,14 @@ For every change, use checks proportionate to the changed surface:
   host metadata, and affected reference files synchronized with behavior.
 - `scripts/quick_validate.py`, vendored from OpenAI's built-in skill creator under Apache-2.0,
   validates the canonical skill's frontmatter, required fields, naming, and length constraints.
-  Its license is retained in `scripts/OPENAI_SKILL_VALIDATOR_LICENSE.txt`.
+  Its license is retained in `scripts/OPENAI_SKILL_VALIDATOR_LICENSE.txt`. The optional
+  `--claude-code` mode accepts the installed copy's `disable-model-invocation` field; canonical
+  validation remains strict.
 - `crap4py` is pinned through `[tool.uv.sources]` to
   `https://github.com/AndresParraSilva/crap4py.git` at
   `fix/silent-100pct-on-coverage-miss`. Scores 10 or higher fail, 5–9 require inspection, and scores
   below 5 are low risk. `crap4py.config.json` selects `learn_up_installer/`, runs `uv run pytest` for
-  coverage, and sets the failure threshold. The verified baseline passes: maximum CRAP is 6.0 and
+  coverage, and sets the failure threshold. The verified baseline passes: maximum CRAP is 8.0 and
   no functions have N/A coverage.
 
 ## 6. Commands
@@ -296,3 +299,11 @@ Do not commit or push unless the user explicitly requests it.
 - Never overwrite an existing installation unexpectedly; preserve a timestamped backup when
   `--force` is explicitly used.
 - Never silently drop, rewrite, or omit canonical payload files during installation.
+
+## 9. Skill and generated-app versions
+
+Keep skill frontmatter metadata.version equal to both plugin manifests and the project version.
+A skill major establishes an app/topic compatibility family and needs a documented content/media
+migration in `skills/learn-up/references/upgrade.md` plus a prominent CHANGELOG notice. New apps
+start at the skill major with minor zero. App-local changes increment minor only. A skill minor
+must not generate content an older app of the same major cannot read.

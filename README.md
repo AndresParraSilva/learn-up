@@ -93,7 +93,7 @@ codex plugin marketplace list
 codex plugin list --marketplace learn-up --json
 ```
 
-Confirm `learn-up@learn-up` is installed and enabled, with version `0.4.1` for this release.
+Confirm `learn-up@learn-up` is installed and enabled, with version `1.0.0` for this release.
 Open a new thread and invoke `$learn-up <topic>`. Seeing the contributed skill in `/skills` is
 normal. If your client does not recognize these CLI commands, update Codex first.
 
@@ -283,7 +283,7 @@ for scope. Treat dumps, old prep books, and community question banks as secondar
 
 | Host                      | Status                                                           | Invocation                     | Notes                                                                                                                                                           |
 | ------------------------- | ---------------------------------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Claude Code               | Supported                                                        | `/learn-up <topic>`            | Installer adds Claude's manual-invocation flag to the installed copy.                                                                                           |
+| Claude Code               | Supported                                                        | `/learn-up <topic>`            | Installer adds Claude's manual-invocation flag and preserves existing `allowed-tools` on update.                                                                |
 | Codex CLI / IDE / desktop | Supported                                                        | `$learn-up <topic>`            | Uses the shared Agent Skills payload plus Codex-specific plugin and UI metadata.                                                                                |
 | Agent Plugins 1.0 clients | Portable package supported                                       | Client-specific                | Load the repository root; `plugin.json` declares the package and `skills/learn-up/SKILL.md` is discovered from the standard fixed location.                     |
 | Other Agent Skills hosts  | Expected, not verified                                           | Host-specific                  | Requires filesystem editing, shell execution, and web access; install `skills/learn-up` using the host's documented skill location.                             |
@@ -331,3 +331,20 @@ bug reports. See [CONTRIBUTING.md](CONTRIBUTING.md).
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Updating the skill when you already have an app
+
+Updating this package does not modify your app automatically. Invoke learn-up in the app and ask
+“upgrade my learn-up app”. The skill compares recorded versions and also offers an upgrade once
+before other existing-app operations. You can decline and continue supported operations using the
+app's own assets; unavailable capabilities require an explicit upgrade.
+
+Upgrades require a clean Git tree and stopped database writers, preserve a timestamped complete
+backup, show asset differences, migrate question ids without dropping progress, and run validation,
+tests/build and a smoke test before recording success. Compatible local asset changes can be kept;
+incompatible conflicts must be resolved first. A failure restores code, content, metadata and the
+database together. About records the skill version and changes. No automatic commit is made.
+
+Skill 1.0.0 keeps Next links within each topic, uses topic-prefixed question ids, migrates legacy
+archives, and accepts same-major packages regardless of minor. Older receiving apps retain their
+previous minor-version restriction until upgraded.

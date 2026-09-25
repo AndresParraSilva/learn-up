@@ -66,3 +66,6 @@ needs touching. Keep contrast accessible.
 - Don't add a CSS framework (Tailwind/Bootstrap) — this is hand-authored CSS by design.
 - Don't inline styles beyond tiny one-offs; extend `index.css` with a new class if you truly need one.
 - Don't change class names the components rely on.
+
+- `CompletionFooter`: persisted Read/Passed badge, same-topic Next link, explicit final-item label,
+  and stale-payload reload banner. Copy the canonical asset and use `.completion-footer*` styles.

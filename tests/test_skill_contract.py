@@ -15,7 +15,7 @@ def test_about_reference_defines_initial_compatibility_version() -> None:
     about = read_skill_file("references/about.md")
     tech_stack = read_skill_file("references/tech-stack.md")
 
-    assert "initial generated version to `1.0`" in about
+    assert "initial generated version to `<skill major>.0`" in about
     assert 'version = "1.0"' in about
     assert 'version = "1.0"' in tech_stack
     assert "content/` and `media/` directories" in about
@@ -44,10 +44,11 @@ def test_generated_agents_template_has_only_fillable_placeholders() -> None:
     assert set(re.findall(r"<[^>]+>", template)) == {
         "<app_version>",
         "<faq_llm_backend>",
+        "<skill_version>",
     }
     assert "Document **every app or content update**" in template
     assert "Increment `MINOR`" in template
-    assert "Increment `MAJOR`" in template
+    assert "Never bump the app `MAJOR` locally" in template
 
 
 def test_skill_requires_copying_and_validating_agents_template() -> None:
@@ -223,3 +224,27 @@ def test_localhost_security_stack_is_mandated() -> None:
     assert "TrustedHostMiddleware" in security_md
     assert "X-LearnUp-Token" in security_md
     assert "127.0.0.1" in security_md
+
+
+def test_upgrade_and_completion_contracts_are_routed():
+    skill = read_skill_file("SKILL.md")
+    assert "references/upgrade.md" in skill
+    assert "before mode-specific early returns" in skill
+    assert "Apps built before 1.0.0 → 1.0.0" in read_skill_file("references/upgrade.md")
+    for asset in ("completion.ts", "completion.test.ts", "CompletionFooter.tsx"):
+        assert (SKILL_ROOT / "assets" / asset).is_file()
+        assert asset in skill
+        assert asset in read_skill_file("references/frontend.md")
+    assert "crosses_topic" not in read_skill_file("assets/CompletionFooter.tsx")
+    assert "next === null" in read_skill_file("assets/completion.ts")
+    assert "<skill_version>" in read_skill_file("assets/agents.template.md")
+
+
+def test_upgrade_local_asset_conflicts_require_full_resolution() -> None:
+    upgrade = read_skill_file("references/upgrade.md")
+    assert "retention of a compatible" in upgrade
+    assert "If retaining a file violates a required contract, stop" in upgrade
+    assert "restore the entire snapshot first" in upgrade
+    assert "Never advance skill metadata or claim success" in upgrade
+    assert "open no issue" in upgrade
+    assert "On decline" in upgrade

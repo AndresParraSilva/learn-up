@@ -61,3 +61,29 @@ def test_invalid_skill_name_is_rejected(tmp_path: Path) -> None:
 
     assert result.returncode == 1
     assert "should be hyphen-case" in result.stdout
+
+
+def test_claude_installed_policy_requires_explicit_validator_mode(
+    tmp_path: Path,
+) -> None:
+    from scripts.quick_validate import validate_skill
+
+    skill_dir = tmp_path / "learn-up"
+    skill_dir.mkdir()
+    (skill_dir / "SKILL.md").write_text(
+        "---\nname: learn-up\ndescription: Study app\n"
+        "disable-model-invocation: true\nallowed-tools: Bash, Read\n---\nBody\n"
+    )
+    assert validate_skill(skill_dir)[0] is False
+    assert validate_skill(skill_dir, allow_claude_policy=True) == (
+        True,
+        "Skill is valid!",
+    )
+    (skill_dir / "SKILL.md").write_text(
+        (skill_dir / "SKILL.md")
+        .read_text()
+        .replace(
+            "disable-model-invocation: true", "disable-model-invocation: sometimes"
+        )
+    )
+    assert validate_skill(skill_dir, allow_claude_policy=True)[0] is False

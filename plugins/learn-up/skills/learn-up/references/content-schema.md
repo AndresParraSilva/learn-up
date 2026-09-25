@@ -171,7 +171,7 @@ the "Correct — " affirmation on the choice(s) they actually got right.
 ```yaml
 objective: "1.1"
 questions:
-  - external_id: "1.1-001" # stable id, never reuse/renumber once published
+  - external_id: "ancient-rome-1.1-001" # stable id, never reuse/renumber once published
     type: single # single | multi
     difficulty: 2 # 1 (easy) – 5 (hard)
     is_mock_eligible: true # false = drill-only, excluded from the fixed assessment
@@ -192,6 +192,12 @@ questions:
 ```
 
 ---
+
+New question ids use `<topic_slug>-<objective>-<NNN>`. Strategy ids use
+`<topic_slug>-strategy-<strategy_topic>-<NNN>`. Both are stable: never reuse or renumber.
+The full validator requires the owning topic's `<topic_slug>-` prefix and rejects duplicates
+within/across topics and both question kinds. Migrated legacy suffixes (for example,
+`<topic_slug>-ga4-1.1-001`) are valid; strict new-authoring grammar must not reject preserved ids.
 
 ## Phase 4 — Labs (only if enabled): `labs/<objective>/<slug>.yaml`
 
@@ -229,6 +235,10 @@ it's shown to the learner as a code block, not executed.
 
 ---
 
+Self-check prompts must not reveal accepted answers through examples or by restating the expected
+value. `contains` values must be specific enough that a broad substring cannot pass. Before
+publishing, re-read every prompt against its `value`; use explicit Hint/Reveal controls for disclosure.
+
 ## Phase 4 — Mock / assessment (only if enabled): `mocks/<code>.yaml`
 
 A fixed, pre-assembled assessment (not randomly generated per attempt) so every attempt is
@@ -238,8 +248,8 @@ comparable. Question count per domain must match the `weight_pct` split in `syll
 code: full_mock_v1
 syllabus_version: v1
 questions:
-  - "1.1-001"
-  - "1.2-004"
+  - "ancient-rome-1.1-001"
+  - "ancient-rome-1.2-004"
   # ... external_ids totaling assessment.question_count, in presentation order
 ```
 

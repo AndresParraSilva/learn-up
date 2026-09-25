@@ -85,3 +85,6 @@ come from **its own** `syllabus.yaml`, independent of other topics.
 - Existing topics are untouched: their content, progress, and routes still work.
 - The new topic's About page exactly matches its recorded intake, sources, and content changelog;
   the app version and root app history match every other topic's About page.
+
+Namespace every question and strategy-question `external_id` with its own topic slug from creation.
+Adding a topic requires no renumbering. Reject cross-topic ownership collisions before seeding.

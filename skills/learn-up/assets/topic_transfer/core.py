@@ -18,6 +18,7 @@ import yaml
 from yaml.events import AliasEvent, NodeEvent
 
 from .faq import MergeResult, merge_topic_q_and_a
+from .id_migration import migrate_topic_ids, validate_destination_ids
 from .manifest import dump_manifest, load_manifest
 from .types import (
     ALLOWED_SUFFIXES,
@@ -31,6 +32,7 @@ from .types import (
     MAX_TOTAL_BYTES,
     ExportReport,
     FileRecord,
+    IdMigration,
     ImportReport,
     Manifest,
     TopicTransferError,
@@ -166,13 +168,19 @@ def inspect_topic_archive(
 
 @contextmanager
 def stage_topic_archive(
-    archive_path: Path, destination_version: str
+    archive_path: Path,
+    destination_version: str,
+    *,
+    migration_report: list[IdMigration] | None = None,
 ) -> Iterator[tuple[Manifest, Path, list[str]]]:
     """Stage protocol-validated data; full app validation is still required before import."""
     parse_app_version(destination_version)
     try:
         with _validated_staging(archive_path, destination_version) as staged:
-            yield staged
+            manifest, root, ignored, mappings = staged
+            if migration_report is not None:
+                migration_report.extend(mappings)
+            yield manifest, root, ignored
     except zipfile.BadZipFile as exc:
         raise TopicTransferError("File is not a valid ZIP archive") from exc
 
@@ -191,7 +199,7 @@ def import_topic(
     archive_digest = _sha256_path(archive_path)
     try:
         with _validated_staging(archive_path, destination_version) as staged:
-            manifest, staging_root, ignored = staged
+            manifest, staging_root, ignored, mappings = staged
             slug = manifest.topic_slug
             topic_path = roots.content / slug
             mode = "update" if topic_path.exists() else "new"
@@ -209,13 +217,21 @@ def import_topic(
                         f"Existing topic path is not a regular directory: {topic_path}"
                     )
                 _assert_tree_has_no_symlinks(topic_path)
+                adapter.validate_live_question_ids(slug)
                 merge_result = merge_topic_q_and_a(
                     topic_path, staging_root / "content" / slug
                 )
+            validate_destination_ids(
+                roots.content, staging_root / "content" / slug, slug
+            )
+            adapter.validate_destination_database_ids(
+                slug, staging_root / "content" / slug
+            )
             _append_import_provenance(
                 staging_root / "content" / slug / "CHANGELOG.md",
                 manifest,
                 archive_digest,
+                mappings,
             )
             adapter.validate_staged_topic(staging_root, slug)
             destinations = _destination_paths(roots, slug)
@@ -233,6 +249,7 @@ def import_topic(
                 merged_q_and_a=merge_result.merged,
                 skipped_q_and_a=merge_result.skipped,
                 ignored=ignored,
+                id_migrations=mappings,
             )
             if not confirm:
                 return report
@@ -246,7 +263,7 @@ def import_topic(
 @contextmanager
 def _validated_staging(
     archive_path: Path, destination_version: str
-) -> Iterator[tuple[Manifest, Path, list[str]]]:
+) -> Iterator[tuple[Manifest, Path, list[str], list[IdMigration]]]:
     if not archive_path.is_file() or archive_path.is_symlink():
         raise TopicTransferError(f"Archive is not a regular file: {archive_path}")
     archive_size = archive_path.stat().st_size
@@ -293,7 +310,10 @@ def _validated_staging(
                     raise TopicTransferError(f"Checksum mismatch for {record.path}")
                 _validate_allowed_file(target, record.path, manifest.topic_slug)
             _validate_about_snapshots(staging_root, manifest.topic_slug)
-        yield manifest, staging_root, ignored
+        mappings = migrate_topic_ids(
+            staging_root / "content" / manifest.topic_slug, manifest.topic_slug
+        )
+        yield manifest, staging_root, ignored, mappings
 
 
 def _collect_export_files(
@@ -649,7 +669,7 @@ def _materialize_staged_sources(staging_root: Path, manifest: Manifest) -> None:
 
 
 def _append_import_provenance(
-    path: Path, manifest: Manifest, archive_sha256: str
+    path: Path, manifest: Manifest, archive_sha256: str, mappings: list[IdMigration]
 ) -> None:
     text = path.read_text(encoding="utf-8").rstrip()
     entry = (
@@ -660,6 +680,8 @@ def _append_import_provenance(
         f"- Archive created: `{manifest.created_at}`\n"
         f"- Archive SHA-256: `{archive_sha256}`\n"
     )
+    for mapping in mappings:
+        entry += f"- Migrated {mapping.kind} ({mapping.path}): `{mapping.old_id}` → `{mapping.new_id}`\n"
     path.write_text(text + entry, encoding="utf-8", newline="\n")
 
 
@@ -789,10 +811,6 @@ def _check_compatibility(manifest: Manifest, destination_version: str) -> None:
         raise TopicTransferError(
             f"App major versions are incompatible: source {manifest.source_app_version}, "
             f"destination {destination_version}"
-        )
-    if incoming_app[1] > destination_app[1]:
-        raise TopicTransferError(
-            f"Topic requires app {manifest.source_app_version}; upgrade destination {destination_version}"
         )
 
 

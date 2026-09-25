@@ -2,3 +2,4 @@
 .venv/
 coverage.json
 node_modules/
+plan20*.md

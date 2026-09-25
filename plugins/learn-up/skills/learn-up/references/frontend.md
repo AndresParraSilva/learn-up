@@ -620,3 +620,40 @@ margin-top) — vertical spacing between blocks comes entirely from the precedin
 margin. `table` has no browser-default margin (unlike `pre`/`ul`/`blockquote`, which get UA-stylesheet
 margins for free), so it needs an explicit `margin: 0 0 0.9em` in this rule set or markdown tables
 render glued to whatever heading/paragraph follows them.
+
+## Completion and reading order
+
+Copy these assets verbatim:
+
+```text
+assets/completion.ts          → frontend/src/lib/completion.ts
+assets/completion.test.ts     → frontend/src/lib/completion.test.ts
+assets/CompletionFooter.tsx   → frontend/src/components/CompletionFooter.tsx
+```
+
+Mirror the backend contract in `src/api/types.ts`:
+
+```ts
+export type NextItemOut = { slug: string; title: string };
+// Required on LessonOut, LabOut and StrategyLessonOut:
+// next: NextItemOut | null;
+// Required on AboutOut:
+// skill_version: string | null;
+```
+
+Render lists in backend order; never re-sort lessons, labs or strategy lessons in the frontend.
+Mount `CompletionFooter` only when the API has persisted `read`/`passed` as true. Await successful
+completion responses before updating that state; a failed request must not display an earned badge.
+Use the current `topicSlug`, never a topic supplied in `next`, to build its route, and always pass
+`backState` through the footer.
+
+| Page               | Persisted flag | statusLabel | nextLabel            | lastLabel                           | hrefFor                                         |
+| ------------------ | -------------- | ----------- | -------------------- | ----------------------------------- | ----------------------------------------------- |
+| LessonDetailPage   | read           | ✅ Read     | Next lesson          | Last lesson in this topic.          | `/t/${topicSlug}/lessons/${next.slug}`          |
+| LabDetailPage      | passed         | ✅ Passed   | Next lab             | Last lab in this topic.             | `/t/${topicSlug}/labs/${next.slug}`             |
+| StrategyLessonPage | read           | ✅ Read     | Next strategy lesson | Last strategy lesson in this topic. | `/t/${topicSlug}/strategy/lessons/${next.slug}` |
+
+An undefined `next` is a stale payload: retain the reload banner. Explicit null marks the last item.
+Run Vitest component/page integration tests for persisted completion, failed completion, same-topic
+links, retained back navigation, null and stale state, then the TypeScript/Vite build.
+About displays `skill_version`, or `Unknown (legacy app)` for null; malformed metadata fails at the API.

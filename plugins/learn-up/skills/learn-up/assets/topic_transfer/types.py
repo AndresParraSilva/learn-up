@@ -170,6 +170,15 @@ class ExportReport:
     ignored: list[str] = field(default_factory=list)
 
 
+@dataclass(frozen=True, slots=True)
+class IdMigration:
+    topic_slug: str
+    kind: str
+    path: str
+    old_id: str
+    new_id: str
+
+
 @dataclass(slots=True)
 class ImportReport:
     topic_slug: str
@@ -180,6 +189,7 @@ class ImportReport:
     status: str
     installed: list[str] = field(default_factory=list)
     replaced: list[str] = field(default_factory=list)
+    id_migrations: list[IdMigration] = field(default_factory=list)
     merged_q_and_a: int = 0
     skipped_q_and_a: list[str] = field(default_factory=list)
     ignored: list[str] = field(default_factory=list)
@@ -190,6 +200,12 @@ class TransferAdapter(Protocol):
     def resolve_topic_name(self, topic_slug: str) -> str: ...
 
     def validate_staged_topic(self, staging_root: Path, topic_slug: str) -> None: ...
+
+    def validate_live_question_ids(self, topic_slug: str) -> None: ...
+
+    def validate_destination_database_ids(
+        self, topic_slug: str, staged_topic: Path
+    ) -> None: ...
 
     def reseed_and_validate(self) -> None: ...
 

@@ -15,18 +15,21 @@ repository files. Render the source documents described below.
 
 ## Compatibility version
 
-Use a two-part `MAJOR.MINOR` app version. Set the initial generated version to `1.0` in
+Use a two-part `MAJOR.MINOR` app version. Set the initial generated version to `<skill major>.0` (currently `1.0`) in
 `pyproject.toml`:
 
 ```toml
 [project]
 name = "learn-up"
 version = "1.0"
+
+[tool.learn-up]
+skill_version = "1.0.0"
 ```
 
 `project.version` is the authoritative app compatibility version. It is separate from:
 
-- the distributable skill/plugin version;
+- the full distributable skill/plugin version, recorded as `[tool.learn-up] skill_version`;
 - each topic's `syllabus_version`, which identifies that topic's taxonomy revision; and
 - dates or headings in change logs.
 
@@ -40,13 +43,14 @@ For every later app or content change:
    into the updated app without transforming either tree, then seeding, validating, and opening the
    copied lessons and videos.
 2. If that workflow still works unchanged, increment `MINOR` (for example, `1.0` to `1.1`).
-3. If a migration, rewrite, rename, relocation, or regeneration of anything in either tree is
-   required, increment `MAJOR` and reset `MINOR` to `0` (for example, `1.4` to `2.0`).
+3. App-local changes never bump `MAJOR`. Propose incompatible content/media changes upstream as
+   a skill change. The app major is inherited from the generating/upgrading skill; a documented
+   skill major upgrade resets app `MINOR` to `0`. See `references/upgrade.md`.
 4. Never infer compatibility from a successful frontend build alone. Exercise the copied content
    and media in the live smoke test.
-5. Treat the topic-transfer contract as part of content/media compatibility. If old archives need
-   migration or transformation, increment `MAJOR`; a backward-compatible archive-format extension
-   increments its own format minor and the app minor.
+5. Same-major topic packages are compatible regardless of app minor. A skill minor must never
+   generate content an older app in the same major cannot read. Incompatible archive/content/media
+   changes require an upstream skill major and its documented migration.
 
 ## Source documents rendered by About
 
@@ -109,6 +113,7 @@ exact source documents above:
 
 ```python
 class AboutOut(BaseModel):
+    skill_version: str | None
     app_version: str
     app_markdown: str
     intake_markdown: str
@@ -131,7 +136,8 @@ also verify the intake and source contracts described in `references/intake.md` 
 Mirror `AboutOut` exactly in `frontend/src/api/types.ts` and add an API client method for the About
 endpoint. `AboutPage` must display:
 
-- `App version <app_version>` as visible metadata;
+- `App version <app_version>` and `Learn-up skill <skill_version>` as visible metadata;
+  show `Unknown (legacy app)` when `skill_version` is null;
 - the rendered root `app_markdown`;
 - a `Configuration` section rendering `intake_markdown`;
 - a `Sources` section rendering `sources_markdown`; and
@@ -159,7 +165,7 @@ The generated `AGENTS.md` makes About maintenance mandatory. Apply it as follows
 - A change touching both app and content: update both change-log surfaces; use one version bump
   chosen by the compatibility test.
 - Adding topic transfer to an existing generated app: increment `MINOR`, document the copied assets,
-  and keep old content/media working unchanged. A fresh generated app still starts at `1.0` with the
+  and keep old content/media working unchanged. A fresh generated app starts at `<skill major>.0` with the
   feature included.
 - Importing a topic: preserve the destination app version/history, append import provenance to the
   imported topic changelog, and expose the import/update report. Importing data does not itself
@@ -171,7 +177,7 @@ statements, and the version returned by the endpoint synchronized.
 ## Smoke tests
 
 Test the endpoint for a real topic and verify every Markdown field is non-empty and the returned
-version is `1.0` on a fresh build. Open About in the browser and compare every intake parameter and
+version is `<skill major>.0` on a fresh build. Open About in the browser and compare every intake parameter and
 source entry against the files on disk. For an ADD-TOPIC run, verify the page switches to the new
 topic's intake, sources, and content changelog while showing the same current app version and root
 version history as every existing topic page.
@@ -180,3 +186,9 @@ shows the trust warning, destination app history, source app/archive versions, a
 without rendering the source root app history as if it belonged to the destination. For an app
 built from an archive, also verify that the original intake and the recipient's destination
 configuration are both visible and clearly attributed, including when their FAQ backends differ.
+
+Read `skill_version` from `[tool.learn-up]` using strict three-part numeric release parsing
+(`assets/skill_version.py`). Missing metadata is allowed only for a legacy app and returns null;
+malformed metadata is an error. Never invent a generating version. New/upgraded apps must record
+the current skill version, and its major must equal the app major. Test valid, missing and malformed
+values, numeric ordering (`1.10.0 > 1.9.0`), About JSON/visible metadata and candidate history validation.

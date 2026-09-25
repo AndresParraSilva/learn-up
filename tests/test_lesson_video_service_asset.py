@@ -19,7 +19,7 @@ def lesson_video_service(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
     app_module.__path__ = []
     constants_module = ModuleType("app.constants")
     constants_module.LESSON_VIDEO_TASK_STALE_HOURS = 12
-    constants_module.LESSON_VIDEO_WAIT_TIMEOUT_SECONDS = 1800
+    constants_module.LESSON_VIDEO_WAIT_TIMEOUT_SECONDS = 21600
     monkeypatch.setitem(sys.modules, "app", app_module)
     monkeypatch.setitem(sys.modules, "app.constants", constants_module)
 
@@ -188,3 +188,27 @@ def test_sync_sources_resumes_after_partial_failure(
         "02-fails-once.pdf",
         "03-last.txt",
     ]
+
+
+@pytest.mark.parametrize(
+    ("objective", "opens"),
+    [("1.1", True), ("2.1", True), ("10.1", True), ("1.10", False), ("1.2", False)],
+)
+def test_domain_opening_course_mention(lesson_video_service, objective, opens):
+    module = lesson_video_service
+    assert module.opens_a_domain(objective) is opens
+    prompt = module.build_video_instructions(
+        "Lesson", "source.pdf", "Ancient Rome", objective
+    )
+    assert (
+        "Mention this video belongs to the Learn-up course on Ancient Rome." in prompt
+    ) is opens
+    assert "Limit the topics" in prompt
+
+
+@pytest.mark.parametrize("objective", [None, "", "  ", 1])
+def test_missing_objective_fails(lesson_video_service, objective):
+    with pytest.raises(lesson_video_service.LessonVideoError, match="objective"):
+        lesson_video_service.build_video_instructions(
+            "Lesson", "source.pdf", "Topic", objective
+        )

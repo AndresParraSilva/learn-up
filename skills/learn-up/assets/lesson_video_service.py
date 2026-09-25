@@ -111,12 +111,26 @@ def read_notebooklm_output_language(topic_slug: str) -> str:
     return language.strip()
 
 
-def build_video_instructions(title: str, source_document: str) -> str:
-    return (
+def opens_a_domain(objective: str) -> bool:
+    if not isinstance(objective, str) or not objective.strip():
+        raise LessonVideoError("Lesson objective must be a non-empty string")
+    return len(objective.split(".")) > 1 and objective.split(".")[-1] == "1"
+
+
+def build_video_instructions(
+    title: str, source_document: str, topic_name: str, objective: str
+) -> str:
+    opener = opens_a_domain(objective)
+    instructions = (
         f'Create a video titled "{title}". '
         f"Limit the topics to what's in {source_document}, and pick up to 6 topics to cover "
         "from that document."
     )
+    if opener:
+        instructions += (
+            f" Mention this video belongs to the Learn-up course on {topic_name}."
+        )
+    return instructions
 
 
 def get_job_status(topic_slug: str, lesson_slug: str) -> dict:
@@ -466,7 +480,12 @@ def generate_lesson_video(topic_slug: str, lesson_slug: str) -> Path:
 
     frontmatter, _ = load_lesson_file(lesson_path)
     title = frontmatter.get("title", lesson_slug)
-    instructions = build_video_instructions(title, match.group("doc"))
+    instructions = build_video_instructions(
+        title,
+        match.group("doc"),
+        read_topic_name(topic_slug),
+        frontmatter.get("objective"),
+    )
     output_language = read_notebooklm_output_language(topic_slug)
     _print_console(
         f"[video] Gemini Notebook prompt for {topic_slug}/{lesson_slug}: {instructions}"

@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.0.0 — 2026-09-24
+
+**Compatibility migration:** generated app major now follows the skill major. Same-major topic
+packages import regardless of minor. Older receiving apps retain their minor restriction until
+upgraded. New skill majors require a documented content/media migration, including no-op migrations
+for installation-only breaking changes.
+
+- Namespace question and strategy ids by topic; migrate legacy YAML scalar values and mock
+  references after hash verification, with typed dry-run/confirm/provenance reports. Archive wire
+  format remains 1.0 and `learn-up-topic-transfer/1`.
+- Add explicit existing-app upgrades, complete rollback, compatible local-asset retention, and a
+  separately rebuilt DuckDB migration preserving learner identities/history.
+- Add ordered per-topic Next navigation and persisted completion footers, including stale-payload
+  detection. Chains end within their topic.
+- Wait up to six hours for lesson video generation; mention the course only on domain openers.
+- Add the lab self-check answer non-disclosure rule and recorded skill version on About.
+- Validation platform: Linux. Windows, Desktop invocation and live external video/LLM providers
+  were not exercised for this release; see the release acceptance record for local results.
+
 ## 0.4.1
 
 - Have generated app agents offer to contribute every improvement back to the learn-up skill

@@ -7,6 +7,13 @@ export type TopicImportReport = {
   status: "validated" | "installed";
   installed: string[];
   replaced: string[];
+  id_migrations: {
+    topic_slug: string;
+    kind: "question" | "strategy_question";
+    path: string;
+    old_id: string;
+    new_id: string;
+  }[];
   merged_q_and_a: number;
   skipped_q_and_a: string[];
   ignored: string[];

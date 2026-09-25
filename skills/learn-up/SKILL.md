@@ -1,6 +1,8 @@
 ---
 name: learn-up
-description: Create, extend, export, or securely import topics in a local self-hosted study web app grounded in user-provided and authoritative sources. Use when explicitly invoked as learn-up with a topic, exported ZIP path, or archive URL, when the user asks to "learn up" or share a topic, or when they want blueprint-mapped lessons, explained quizzes, hands-on labs, spaced repetition, progress tracking, multilingual content, a topic archive, or a specific lesson's Gemini Notebook video in an existing learn-up app.
+description: Create, extend, upgrade, export, or securely import topics in a local self-hosted study web app grounded in user-provided and authoritative sources. Use when explicitly invoked as learn-up with a topic, exported ZIP path, or archive URL, when the user asks to "learn up" or share a topic, or when they want blueprint-mapped lessons, explained quizzes, hands-on labs, spaced repetition, progress tracking, multilingual content, a topic archive, an existing app upgrade, or a specific lesson's Gemini Notebook video in an existing learn-up app.
+metadata:
+  version: "1.0.0"
 ---
 
 # learn-up — build a study app for any topic
@@ -44,7 +46,13 @@ the whole build in your head; pull each reference in as you reach its phase.
 ## Phase 0 — Locate/target the repo
 
 1. Run `date` and note today's date (used for the changelog and any pacing math).
-2. Recognize an **ARCHIVE** run before interpreting a topic name: `learn-up file.zip` or
+2. Resolve any existing target app before mode-specific early returns. Read
+   `references/upgrade.md` and run its shared version preflight (strict numeric skill metadata
+   comparison, legacy capability inventory, one upgrade offer, no downgrades). An explicit
+   **UPGRADE** request such as "upgrade my learn-up app" routes directly to that reference;
+   finish there without topic intake. If upgrading is declined, use the app's own assets and
+   `AGENTS.md` for supported operations; stop an unsupported operation without an implicit upgrade.
+3. Recognize an **ARCHIVE** run before interpreting a topic name: `learn-up file.zip` or
    `learn-up URL`, including `$learn-up` in Codex and `/learn-up` in Claude Code. A standalone
    HTTP(S) URL means a download link to an exported topic; it need not end in `.zip`. A URL or
    file explicitly supplied as source material for a named topic remains part of normal intake.
@@ -54,9 +62,9 @@ the whole build in your head; pull each reference in as you reach its phase.
    in Phase 5 and import before its live smoke test. For an existing app, use the transfer
    workflow without topic intake or authoring. Do not derive a slug from the filename or URL.
    Explicit export/share/validate/import requests are **TRANSFER** runs using the same reference;
-   validation alone must not create an app. These modes bypass the remaining Phase 0 steps.
+   validation alone must not create an app. These modes bypass the remaining Phase 0 steps after shared upgrade preflight.
    Never inspect or extract an archive with ad hoc shell commands.
-3. Check whether this invocation is actually a **GENERATE-VIDEO** run instead of a build: a request
+4. Check whether this invocation is actually a **GENERATE-VIDEO** run instead of a build: a request
    to generate/fetch a specific lesson's video against an app that already exists (e.g. "generate
    the video for lesson 1.1 of github-actions", "make the Gemini Notebook video for the founding-myths
    lesson"), as opposed to a topic name to build/add. If so, skip the rest of Phase 0 through
@@ -64,16 +72,16 @@ the whole build in your head; pull each reference in as you reach its phase.
    (MCP-driven, via chat) unless the user asks for the button, the script, or the manual path
    instead. This mode works against an existing app at any time, not just right after a build, and
    is the normal way lesson videos get resolved (never bulk — see golden rule 4).
-4. Otherwise, determine the **topic** from the invocation text or the user's request. If absent,
+5. Otherwise, determine the **topic** from the invocation text or the user's request. If absent,
    ask for it. Invocation syntax varies by host: Claude Code commonly uses `/learn-up`, while
    Codex uses `$learn-up`; do not assume one syntax in generated user-facing text.
-5. Decide the target `learn-up` directory:
+6. Decide the target `learn-up` directory:
    - If the current working directory already **is** a `learn-up` repo (has `pyproject.toml`
      with name `learn-up` and a `content/` dir), or a `./learn-up` subdir exists → this is an
      **ADD-TOPIC** run. Read `references/multi-topic.md` and confirm with the user you're adding
      a new topic to the existing app, not starting over.
    - Otherwise → this is a **NEW-APP** run. You'll create the `learn-up/` folder in Phase 5.
-6. Derive a `topic_slug` (kebab-case, e.g. "Ancient Rome" → `ancient-rome`). It namespaces this
+7. Derive a `topic_slug` (kebab-case, e.g. "Ancient Rome" → `ancient-rome`). It namespaces this
    topic's content, sources, and routes; it must be unique within the repo.
 
 ## Phase 1 — Intake (interactive) → `references/intake.md`
@@ -178,12 +186,17 @@ cross-site` and foreign-origin rejection, and per-run `X-LearnUp-Token` validati
   for the user to review and do themselves.
   Create root `ABOUT.md` and its About API/page per `references/about.md`. Create the generated
   repo's own `AGENTS.md` by copying `assets/agents.template.md` rather than writing one from memory.
-  Replace `<app_version>` with `1.0` and `<faq_llm_backend>` with the intake-selected backend, remove
+  Replace `<app_version>` with `<skill major>.0` (currently `1.0`), `<skill_version>` with the
+  skill metadata version, and `<faq_llm_backend>` with the intake-selected backend, remove
   the template note, and tailor feature/command statements to the app actually generated. Before
   handoff, fail if any angle-bracket template placeholder remains, and verify `AGENTS.md` agrees
   with the generated `README.md`, configuration, structure, and enabled modules. The generated
   README must identify the current app compatibility version and point maintainers to `AGENTS.md`'s
   About/version rules.
+  Copy `assets/completion.ts` and `assets/completion.test.ts` to `frontend/src/lib/`, and
+  `assets/CompletionFooter.tsx` to `frontend/src/components/`, verbatim; wire per-topic completion
+  navigation per `references/frontend.md`. Record canonical source/destination paths and SHA-256
+  hashes in `.learnup-skill-assets.json` for future upgrade comparisons.
   Also scaffold the Gemini Notebook video-placeholder resolution tooling per
   `references/notebooklm-automation.md`: the `media/` static mount in `app/main.py`, the `/media`
   vite proxy entry, `assets/lesson_video_service.py` → `app/services/lesson_video.py`,
@@ -204,8 +217,8 @@ cross-site` and foreign-origin rejection, and per-run `X-LearnUp-Token` validati
   and UI.
 - **ADD-TOPIC:** follow `references/multi-topic.md` — usually you only add content + seed the new
   topic; no app-code changes if the app was built topic-aware (it should be). A current app already
-  includes topic transfer. If an older app does not, add the copied assets as a backward-compatible
-  app update, increment the app minor version, and document it before importing.
+  includes topic transfer. If an older app lacks it, offer the explicit upgrade workflow; on decline,
+  stop an unsupported transfer operation without changing the app.
 - **If you parallelize backend and frontend work (e.g. across two subagents), both MUST be pinned to
   the exact API contract in `references/backend.md`'s "API contract" section** — that section is the
   literal source of truth (field names, nullability, flat-vs-nested shapes), not a paraphrase. Two
@@ -314,7 +327,7 @@ dev -- --port <port>`. Confirm `uv run uvicorn ...` works with **zero env-var ov
   learn-up book-and-fruit-tree mark; wire all four into `frontend/index.html` exactly as shown in
   `references/frontend.md`. Never regenerate or retheme them per topic.
 - `assets/agents.template.md` → the generated repo's `AGENTS.md`. Copy it first; fill
-  `<app_version>` and `<faq_llm_backend>`, tailor it to the actual build, delete its template note,
+  `<app_version>`, `<skill_version>` and `<faq_llm_backend>`, tailor it to the actual build, delete its template note,
   and fail if an angle-bracket placeholder remains. Do not re-create its rules from memory.
 - `assets/gitignore.template` → the repo root's `.gitignore` **verbatim** (excludes `learn_up.duckdb`
   and its `.wal` sidecar, `.claude/` runtime state, `.venv/`, `node_modules/`, `frontend/dist/`, `.env`,
@@ -338,3 +351,9 @@ dev -- --port <port>`. Confirm `uv run uvicorn ...` works with **zero env-var ov
 
 Work through the phases top-down. Keep the user in the loop at the syllabus outline (Phase 3) and
 before a long content-authoring pass (Phase 4).
+
+- UPGRADE → `references/upgrade.md`; shared preflight runs before every existing-app mode.
+- Completion assets: `assets/completion.ts`, `assets/completion.test.ts`, `assets/CompletionFooter.tsx`.
+- Upgrade helpers: `assets/skill_version.py`, `assets/rebuild_question_ids.py`, `assets/upgrade_snapshot.py`
+  and `assets/upgrade_assets.py`, run in the
+  app's locked Python environment as directed by `references/upgrade.md`.

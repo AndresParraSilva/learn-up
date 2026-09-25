@@ -217,6 +217,8 @@ and router. Its adapter implements exactly:
 class TransferAdapter(Protocol):
     def resolve_topic_name(self, topic_slug: str) -> str: ...
     def validate_staged_topic(self, staging_root: Path, topic_slug: str) -> None: ...
+    def validate_live_question_ids(self, topic_slug: str) -> None: ...
+    def validate_destination_database_ids(self, topic_slug: str, staged_topic: Path) -> None: ...
     def reseed_and_validate(self) -> None: ...
 ```
 
@@ -260,6 +262,7 @@ class ContentInfoOut(BaseModel):               # GET /api/t/{topic}/content-info
     lesson_count: int; question_count: int; lab_count: int
 
 class AboutOut(BaseModel):                     # GET /api/t/{topic}/about
+    skill_version: str | None                 # None only for an unrecorded legacy version
     app_version: str
     app_markdown: str
     intake_markdown: str
@@ -278,7 +281,12 @@ class LessonListItem(BaseModel):               # GET /lessons (list), GET /lesso
                                                 # server-side per lesson (see "Lesson list video
                                                 # status" below), drives LessonsPage's marker icon
 
+class NextItemOut(BaseModel):
+    slug: str
+    title: str
+
 class LessonOut(BaseModel):                    # GET /lessons/{slug}
+    next: NextItemOut | None                  # required; null only for last in this topic
     id: int; slug: str; title: str
     objective_code: str; objective_title: str; domain_code: str; domain_name: str
     body_markdown: str; why_it_matters_markdown: str
@@ -341,6 +349,7 @@ class LabSelfCheckOut(BaseModel):
     hint_available: bool                       # False for yes/no checks — hinting "y..." gives it away
 
 class LabOut(BaseModel):                       # GET /labs/{slug}
+    next: NextItemOut | None                  # required; null only for last in this topic
     id: int; slug: str; title: str
     objective_code: str; objective_title: str; domain_code: str
     scenario_markdown: str; setup_sql: str; task_markdown: str; expected_result: str
@@ -398,6 +407,7 @@ class StrategyLessonListItem(BaseModel):
     id: int; slug: str; title: str; topic: str; read: bool
 
 class StrategyLessonOut(BaseModel):
+    next: NextItemOut | None                  # required; null only for last in this topic
     id: int; slug: str; title: str; topic: str
     body_markdown: str; why_it_matters_markdown: str
     faq: list[FaqEntryOut]; read: bool
@@ -469,7 +479,7 @@ LESSON_QA_TIMEOUT_SECONDS = 180
 LESSON_QA_MAX_BUDGET_USD = 2.00
 
 # Gemini Notebook video generation can take several minutes for whiteboard-style videos.
-LESSON_VIDEO_WAIT_TIMEOUT_SECONDS = 1800
+LESSON_VIDEO_WAIT_TIMEOUT_SECONDS = 21600  # 6 hours; queued generation can take hours.
 
 # A persisted .video_tasks.json entry older than this is treated as abandoned rather than still
 # in progress — see references/notebooklm-automation.md's "Resumable generation" section.
@@ -536,6 +546,9 @@ so the same attempt is stable but order isn't guessable across attempts.
   at creation, so the label is recomputed from the first question every time the attempt is fetched.
   This means `_get_attempt_or_404`'s eager-load must also pull
   `Question.objective` → `Objective.domain`, not just `Question.choices`.
+
+Prompts must obey the self-check non-disclosure rule in `references/content-schema.md`.
+Only the explicit Hint and Reveal answer controls may disclose answer information.
 
 ## Algorithm: lab self-check hints (`app/services/labs.py`)
 
@@ -1053,3 +1066,142 @@ support caching ..."`, one line per query) — `sqlalchemy.engine` has no level 
   trigger (plain stdlib `basicConfig`, not an SDK import). Fix in both files, right after
   `basicConfig`: `logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)`. Without it,
   every `seed`/`validate` run drowns its own real progress/error output in query-cache noise.
+
+## Reading order (`app/services/sequence.py`)
+
+Generate this service, with the app's model/import paths. Lists for lessons, labs and strategy
+lessons use its `ordered_*` functions and detail endpoints resolve `next` from that same topic's
+ordered list. Serialize only `slug` and `title`; the last item returns `next: null` even if another
+topic exists. `GET /api/topics` uses `ordered_topics` (slug order).
+
+```python
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
+
+from app.constants import STRATEGY_TOPICS
+from app.models import Lab, Lesson, Objective, StrategyLesson, Topic
+
+# One dotted code renders as a tuple of same-shaped triples so mixed numeric/alphanumeric segments
+# stay comparable: numeric segments sort first and by value, everything else after and by text.
+CodeKey = tuple[tuple[int, int, str], ...]
+
+Item = Lesson | Lab | StrategyLesson
+
+
+def natural_code_key(code: str) -> CodeKey:
+    if not isinstance(code, str) or not code or any(not part or any(c.isspace() for c in part) for part in code.split(".")):
+        raise ValueError(f"Malformed code: {code!r}")
+    parts: list[tuple[int, int, str]] = []
+    for part in code.split("."):
+        if part.isascii() and part.isdecimal():
+            parts.append((0, int(part), ""))
+        else:
+            parts.append((1, 0, part))
+    return tuple(parts)
+
+
+def _blueprint_key(entity: Lesson | Lab) -> tuple[CodeKey, CodeKey, str]:
+    objective = entity.objective
+    return (
+        natural_code_key(objective.domain.code),
+        natural_code_key(objective.code),
+        entity.slug,
+    )
+
+
+def _strategy_key(lesson: StrategyLesson) -> tuple[int, str]:
+    # STRATEGY_TOPICS is the authored order of the exam-mechanics curriculum; the content validator
+    # already rejects lessons tagged outside it, so an unknown tag here means the two have drifted.
+    if lesson.topic not in STRATEGY_TOPICS:
+        raise ValueError(
+            f"strategy lesson {lesson.slug!r} is tagged {lesson.topic!r}, "
+            f"which is not in STRATEGY_TOPICS"
+        )
+    return (STRATEGY_TOPICS.index(lesson.topic), lesson.slug)
+
+
+def _objective_ids(topic: Topic) -> list[int]:
+    return [o.id for d in topic.domains for o in d.objectives]
+
+
+def ordered_topics(session: Session) -> list[Topic]:
+    return list(session.execute(select(Topic).order_by(Topic.slug)).scalars().all())
+
+
+def ordered_lessons(session: Session, topic: Topic) -> list[Lesson]:
+    objective_ids = _objective_ids(topic)
+    if not objective_ids:
+        return []
+    lessons = (
+        session.execute(
+            select(Lesson)
+            .where(Lesson.objective_id.in_(objective_ids))
+            .options(selectinload(Lesson.objective).selectinload(Objective.domain))
+        )
+        .scalars()
+        .all()
+    )
+    return sorted(lessons, key=_blueprint_key)
+
+
+def ordered_labs(session: Session, topic: Topic) -> list[Lab]:
+    objective_ids = _objective_ids(topic)
+    if not objective_ids:
+        return []
+    labs = (
+        session.execute(
+            select(Lab)
+            .where(Lab.objective_id.in_(objective_ids))
+            .options(
+                selectinload(Lab.objective).selectinload(Objective.domain),
+                selectinload(Lab.checks),
+            )
+        )
+        .scalars()
+        .all()
+    )
+    return sorted(labs, key=_blueprint_key)
+
+
+def ordered_strategy_lessons(session: Session, topic: Topic) -> list[StrategyLesson]:
+    lessons = (
+        session.execute(select(StrategyLesson).where(StrategyLesson.topic_id == topic.id))
+        .scalars()
+        .all()
+    )
+    return sorted(lessons, key=_strategy_key)
+
+
+def next_in_topic(ordered_items: list[Item], slug: str) -> Item | None:
+    for index, item in enumerate(ordered_items):
+        if item.slug == slug:
+            return ordered_items[index + 1] if index + 1 < len(ordered_items) else None
+    raise ValueError(f"{slug!r} is absent from the ordered topic")
+```
+
+Test `natural_code_key` with 1.2/1.10, mixed text/numeric segments, Unicode digits, empty segments
+and invalid types; test absent slug errors, blueprint and strategy ordering, unknown strategy tags,
+list/detail agreement, topic slug order, and a two-topic fixture whose first topic ends with null.
+
+## Seeder identity and prefix validation
+
+Implement `_get_or_create_question(session, topic, external_id)`: look up the globally unique id,
+then resolve its owner through Question → Objective → Domain → Topic. If it belongs to another
+owner, raise `ValueError` naming the id and owning topic; never reassign it. Apply the same guard
+to `StrategyQuestion` using its `topic_id`. Mock resolution must filter by `Domain.topic_id`.
+Validate every id has its own topic prefix and reject duplicate ids within/across topics and both
+question kinds. New authoring uses the grammar in `content-schema.md`; imported/migrated ids may
+retain legacy suffixes such as `snowpro-core-ga4-1.1-001`.
+
+Preserve question and choice primary keys on reseed. Update choices by position for both kinds;
+do not delete/reinsert unchanged choices. Refuse destructive choice removal referenced by learner
+history until the user resolves the content change. Tests must cover prefix failures and cross-topic
+ownership failures for both kinds, plus reseed with selected response choices and strategy attempts.
+
+`validate_live_question_ids(topic_slug)` is a read-only transfer-adapter preflight: compare the
+live topic's authored question ids and kinds with database rows resolved by real topic ownership,
+require a complete match, and reject unprefixed ids, missing/stale mappings and collisions before
+any file installation. Never infer ownership from the id alone. `validate_destination_database_ids` checks each staged id against all destination database
+owners (both kinds) during dry run, before any live write. A row owned by another topic, or a
+partial database topic absent from content, raises `TopicTransferError`. See `references/upgrade.md` for legacy
+migration before reseeding.

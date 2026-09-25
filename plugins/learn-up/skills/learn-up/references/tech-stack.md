@@ -29,7 +29,7 @@ SQLAlchemy** (not async) — this is the one deliberate divergence from the temp
   try to load whatever driver the other URL's scheme implies (e.g. crash with
   `ModuleNotFoundError: No module named 'asyncpg'`) instead of using DuckDB. This bit a real build —
   don't reintroduce it.
-- **Version:** two-part `MAJOR.MINOR`, starting at `1.0`; `[project].version` is authoritative. See
+- **Version:** two-part `MAJOR.MINOR`, starting at `<skill major>.0` (currently `1.0`); `[project].version` is authoritative. See
   `references/about.md` for compatibility and update rules.
 - **Content:** version-controlled **YAML/Markdown** under `content/<topic_slug>/`, seeded into DuckDB.
 - **Frontend:** **React SPA** — Vite + **TypeScript** under `frontend/`, React Router, react-markdown
@@ -94,7 +94,7 @@ pythonpath = ["."]
 ## Generated `AGENTS.md`
 
 For a NEW-APP run, copy `assets/agents.template.md` to root `AGENTS.md`; do not reconstruct it from
-the reference prose. Replace `<app_version>` with `1.0` and `<faq_llm_backend>` with the exact intake
+the reference prose. Replace `<app_version>` with `<skill major>.0`, `<skill_version>` with the skill metadata version, and `<faq_llm_backend>` with the exact intake
 value, remove the template note, and tailor optional-module and command statements to the generated
 implementation. Fail the build if an angle-bracket placeholder remains. Before handoff, compare the
 finished file against the generated README, `pyproject.toml`, settings, repository layout, and
@@ -146,3 +146,8 @@ If it's taken by something that isn't this repo's own leftover process, **do not
 free port instead (e.g. `--host 127.0.0.1 --port 8012` for uvicorn, `--port 5180 --strictPort` for `npm run dev`),
 update `frontend/vite.config.ts`'s proxy `target` to match the backend port you actually used, and
 report the real ports you launched on to the user instead of assuming the defaults.
+
+Copy `assets/completion.ts` and `assets/completion.test.ts` to `frontend/src/lib/`, and
+`assets/CompletionFooter.tsx` to `frontend/src/components/`, verbatim. Wire them per `frontend.md`.
+Record `[tool.learn-up] skill_version = "1.0.0"` for this release and the canonical asset destination
+and SHA-256 inventory in `.learnup-skill-assets.json` so upgrades can distinguish upstream/local edits.

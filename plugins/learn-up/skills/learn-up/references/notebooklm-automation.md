@@ -130,8 +130,7 @@ persisted to disk **before** the long wait:
 2. Persist `{lesson_slug: {"task_id": ..., "started_at": <iso8601 UTC>}}` to
    `media/<topic_slug>/.video_tasks.json` right away.
 3. `notebooklm artifact wait <task_id> --notebook <id> --timeout <LESSON_VIDEO_WAIT_TIMEOUT_SECONDS>`
-   (Gemini Notebook's own `generate video --wait` default is 1800s; match it explicitly since
-   `artifact wait`'s own default is only 300s), then `notebooklm download video <out_path>
+   (use `LESSON_VIDEO_WAIT_TIMEOUT_SECONDS = 21600`, a 6-hour wait for long generation queues), then `notebooklm download video <out_path>
 --notebook <id> --artifact <task_id> --force`, then clear the entry from `.video_tasks.json`.
 
 `_generate_and_download` checks `.video_tasks.json` for this lesson **first**, before step 1 — if a
@@ -203,10 +202,8 @@ lesson actually covers. `generate_lesson_video()` now builds:
 ```python
 frontmatter, _ = load_lesson_file(lesson_path)
 title = frontmatter.get("title", lesson_slug)
-instructions = (
-    f'Create a video titled "{title}". '
-    f"Limit the topics to what's in {match.group('doc')}, and pick up to 6 topics to cover "
-    "from that document."
+instructions = build_video_instructions(
+    title, match.group("doc"), read_topic_name(topic_slug), frontmatter.get("objective")
 )
 ```
 
@@ -370,8 +367,10 @@ still current.
    NotebookLM languages, fail if the configured code is absent, and set that exact code before
    triggering generation. Then use an instruction of the form `Create a video titled "<lesson
 title>". Limit the topics to what's in <source filename>, and pick up to 6 topics to cover from
-that document.` Do not duplicate the language in the prompt.
-5. Poll/wait for the generation to finish, then download the artifact to
+that document.` Require a nonempty string objective. Only when its last dotted segment is exactly
+   `1` (e.g. `2.1`, never `1.10`), append ` Mention this video belongs to the Learn-up course on
+<topic name>.` Do not duplicate the language in the prompt.
+5. Poll/wait for up to 6 hours (21600 seconds) for generation to finish, then download the artifact to
    `media/<topic_slug>/<slug>.mp4` (create the directory if needed).
 6. Edit the lesson file: replace the whole `[placeholder]...[/placeholder]` block with
    `[Watch the video summary](/media/<topic_slug>/<slug>.mp4)`. Also update the DB row directly if
@@ -485,3 +484,7 @@ Nothing topic-specific to scaffold — `media/`, the static mount, the service m
 and the button are all app-level and already exist after the first topic's build. A new topic just
 gets its own `media/<new_topic_slug>/` subdirectory, created lazily the first time any path is used
 for that topic's first video.
+
+For every path, including manual generation, read the objective and topic name first. Missing or
+blank objective is an error. Append the course sentence only for domain openers (`X.1`). Keep the
+authored lesson placeholder unchanged; this rule applies to the submitted generation prompt.

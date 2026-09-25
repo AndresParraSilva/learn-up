@@ -1114,3 +1114,33 @@ summary {
 .video-placeholder__error {
   color: var(--rust-ink);
 }
+
+.completion-footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-top: 2rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line-soft);
+}
+.completion-footer__next {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+.completion-footer__next-title {
+  color: var(--ink-soft);
+  font-size: 0.85rem;
+}
+.completion-footer .btn {
+  text-decoration: none;
+}
+
+.completion-footer__stale {
+  margin: 0 0 0 auto;
+  font-size: 0.85rem;
+}

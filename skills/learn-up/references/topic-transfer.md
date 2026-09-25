@@ -54,7 +54,7 @@ normal authoring intake.
        # Read topic data only inside this context; staging is removed on exit.
    ```
 
-   Use `1.0` for a new app and the actual `[project].version` for an existing app. The context
+   Use `<skill major>.0` (currently `1.0`) for a new app and the actual `[project].version` for an existing app. The context
    manager checks archive structure, versions, inventory, hashes, allowed file content, and
    About snapshots through the same canonical pipeline used by import. It needs no generated
    app, database, or adapter. It does **not** validate objective coverage or the complete app
@@ -250,8 +250,8 @@ Run the copied pipeline in this order:
 7. Hash while copying and reject any declared size/checksum mismatch.
 8. Validate Markdown as strict UTF-8 without NULs. Require the expected heading/frontmatter shape
    for About, lesson, strategy, and changelog paths. Validate YAML with `yaml.safe_load`, reject
-   aliases/custom tags and unexpected shapes, then run the adapter's complete staged content
-   validator. Verify MP4 by parsing the leading ISO Base Media File Format boxes and requiring a
+   aliases/custom tags and unexpected shapes. After verifying original hashes, run the canonical
+   scalar-only question-id migration, then the adapter's complete staged content validator. Verify MP4 by parsing the leading ISO Base Media File Format boxes and requiring a
    plausible `ftyp` box plus the expected direct lesson-media path; a renamed executable is not an
    MP4.
 9. Produce a side-effect-free dry-run report. Do not change live paths until the user confirms an
@@ -266,15 +266,15 @@ salvage a partial topic.
 Read the destination app version from `pyproject.toml`:
 
 - Different major: reject and name both versions.
-- Same major, incoming minor greater than destination minor: reject and tell the recipient to
-  upgrade the destination app.
-- Same major, incoming minor equal to or older than destination: accept.
+- Same major: accept regardless of minor (`1.11` into `1.0` and the reverse).
+- Apps built before skill 1.0.0 still reject an incoming minor greater than destination minor
+  when receiving. Offer an explicit upgrade; never disguise the source version.
 - Malformed or unsupported archive/app version: reject.
 
-A new generated app remains version `1.0`. When adding this feature to an already generated app,
+A new generated app starts at `<skill major>.0`. When adding this feature to an already generated app,
 it is a backward-compatible app change: increment that app's minor version and document it in root
-`ABOUT.md`. A later change that requires rewriting or migrating old archives, `content/`, or
-`media/` increments the app major and resets the minor to zero. A backward-compatible extension of
+`ABOUT.md`. A later incompatible change to archives, `content/`, or `media/` requires an upstream skill major
+and a documented migration; apps never bump their major locally. A backward-compatible extension of
 the archive format increments its format minor; an incompatible wire change increments its format
 major.
 
@@ -340,3 +340,24 @@ assert that every canonical asset and contract test exists with the expected imp
 Smoke-test one export/import between two clean generated apps with the same major version, then an
 update with local-only and incoming-only Q&A. Confirm imported videos play and the destination About
 page shows both its own app version/history and the imported topic provenance.
+
+## ID migration and staging reports
+
+`topic_transfer/id_migration.py` is shared by imports and app upgrades. It namespaces unprefixed
+question/strategy ids and matching mock references without reserializing YAML. It rejects collisions,
+unknown mock references, duplicate keys, aliases/anchors and unexpected shapes before writes.
+Foreign legacy prefixes are retained as suffixes; Q&A is keyed by lesson/lab slug and is unaffected.
+The adapter validates all destination content/database ownership for dry runs, including staged
+ids against every database owner, and rejects legacy live ids before updates. Complete the app upgrade first; otherwise reseeding could create new learner identities.
+
+Both dry-run and confirm `ImportReport.id_migrations` contain typed entries with `topic_slug`,
+`kind`, `path`, `old_id`, `new_id`. CLI/router dataclass serialization includes the list, the UI shows
+the count and expandable full list, and topic provenance records every mapping.
+`stage_topic_archive(..., migration_report=mappings)` appends to a caller-provided empty list while
+retaining `(manifest, staging_root, ignored)` unpacking. The manifest and its hashes describe the
+original archive bytes; they are source provenance, not checksums for transformed staging bytes.
+Run full app validation on the migrated staging tree before using it.
+
+For existing apps, resolve the destination and run `references/upgrade.md` preflight before staging.
+If upgrading is declined, use that app's own protocol/assets and version rules. Stop unsupported
+operations if its own protocol lacks them; do not load a newer package implicitly.

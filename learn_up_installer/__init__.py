@@ -45,16 +45,60 @@ def destination(args: argparse.Namespace) -> Path:
     return root / HOST_DIRS[args.agent][args.scope] / SKILL_NAME
 
 
-def add_claude_policy(skill_md: Path) -> None:
-    content = skill_md.read_text(encoding="utf-8")
+def _frontmatter(content: str, path: Path) -> tuple[str, str]:
     marker = "\n---\n"
+    if not content.startswith("---\n"):
+        raise ValueError(f"Could not locate YAML frontmatter in {path}")
     end = content.find(marker, 4)
     if end == -1:
-        raise ValueError(f"Could not locate YAML frontmatter in {skill_md}")
-    frontmatter = content[:end]
-    if "\ndisable-model-invocation:" not in frontmatter:
-        frontmatter += "\ndisable-model-invocation: true"
-    skill_md.write_text(frontmatter + content[end:], encoding="utf-8")
+        raise ValueError(f"Could not locate YAML frontmatter in {path}")
+    return content[:end], content[end:]
+
+
+def _policy_line(frontmatter: str, key: str) -> str | None:
+    lines = [line for line in frontmatter.splitlines() if line.startswith(f"{key}:")]
+    if len(lines) > 1:
+        raise ValueError(f"Duplicate {key} policy in skill frontmatter")
+    if lines and not lines[0].partition(":")[2].strip():
+        raise ValueError(f"Empty {key} policy in skill frontmatter")
+    return lines[0] if lines else None
+
+
+def add_claude_policy(skill_md: Path, previous_skill_md: Path | None = None) -> None:
+    content = skill_md.read_text(encoding="utf-8")
+    frontmatter, body = _frontmatter(content, skill_md)
+    previous = None
+    if previous_skill_md is not None:
+        previous, _ = _frontmatter(
+            previous_skill_md.read_text(encoding="utf-8"), previous_skill_md
+        )
+    for key, default in (
+        ("disable-model-invocation", "disable-model-invocation: true"),
+        ("allowed-tools", None),
+    ):
+        if _policy_line(frontmatter, key) is not None:
+            continue
+        retained = _policy_line(previous, key) if previous is not None else None
+        if retained is not None:
+            frontmatter += "\n" + retained
+        elif default is not None:
+            frontmatter += "\n" + default
+    skill_md.write_text(frontmatter + body, encoding="utf-8")
+
+
+def _prepare_target(target: Path, force: bool) -> Path | None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if not target.exists():
+        return None
+    if not force:
+        raise FileExistsError(
+            f"An installation already exists at {target}. Re-run with --force to update it."
+        )
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    backup = target.with_name(f"{SKILL_NAME}.backup-{stamp}")
+    target.rename(backup)
+    print(f"Previous installation preserved at {backup}")
+    return backup
 
 
 def install(args: argparse.Namespace) -> Path:
@@ -67,20 +111,19 @@ def install(args: argparse.Namespace) -> Path:
         print(f"Would install {source} to {target}")
         return target
 
-    target.parent.mkdir(parents=True, exist_ok=True)
-    if target.exists():
-        if not args.force:
-            raise FileExistsError(
-                f"An installation already exists at {target}. Re-run with --force to update it."
+    backup = _prepare_target(target, args.force)
+    try:
+        shutil.copytree(source, target)
+        if args.agent == "claude-code":
+            add_claude_policy(
+                target / "SKILL.md", backup / "SKILL.md" if backup else None
             )
-        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-        backup = target.with_name(f"{SKILL_NAME}.backup-{stamp}")
-        target.rename(backup)
-        print(f"Previous installation preserved at {backup}")
-
-    shutil.copytree(source, target)
-    if args.agent == "claude-code":
-        add_claude_policy(target / "SKILL.md")
+    except BaseException:
+        if target.is_dir():
+            shutil.rmtree(target)
+        if backup is not None:
+            backup.rename(target)
+        raise
     return target
 
 

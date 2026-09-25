@@ -101,6 +101,8 @@ export default function SelectionAsk({
     }
 
     function positionPanel() {
+      if (!panel || !trigger)
+        throw new Error("SelectionAsk position state is missing");
       const visualViewport = window.visualViewport;
       const viewportLeft = visualViewport?.offsetLeft ?? 0;
       const viewportTop = visualViewport?.offsetTop ?? 0;

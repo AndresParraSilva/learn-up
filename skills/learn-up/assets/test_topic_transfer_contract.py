@@ -59,3 +59,29 @@ def test_manifest_rejects_yaml_aliases() -> None:
     )
     with pytest.raises(TopicTransferError, match="anchors"):
         load_manifest(aliased)
+
+
+@pytest.mark.parametrize(
+    ("source", "destination", "accepted"),
+    [
+        ("1.11", "1.0", True),
+        ("1.0", "1.11", True),
+        ("2.0", "1.11", False),
+        ("1.11", "2.0", False),
+        ("bad", "1.0", False),
+        ("1.0", "1.0.0", False),
+    ],
+)
+def test_app_compatibility(source, destination, accepted):
+    from dataclasses import replace
+
+    try:
+        from app.services.topic_transfer.core import _check_compatibility
+    except ModuleNotFoundError:
+        from topic_transfer.core import _check_compatibility
+    manifest = replace(sample_manifest(), source_app_version=source)
+    if accepted:
+        _check_compatibility(manifest, destination)
+    else:
+        with pytest.raises(TopicTransferError):
+            _check_compatibility(manifest, destination)

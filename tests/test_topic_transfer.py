@@ -50,6 +50,14 @@ class Adapter:
         assert (staging_root / "sources" / topic_slug / "INTAKE.md").is_file()
         assert (staging_root / "sources" / topic_slug / "SOURCES.md").is_file()
 
+    def validate_live_question_ids(self, topic_slug: str) -> None:
+        pass  # These protocol fixtures contain no database rows.
+
+    def validate_destination_database_ids(
+        self, topic_slug: str, staged_topic: Path
+    ) -> None:
+        pass  # Protocol fixture has no database.
+
     def reseed_and_validate(self) -> None:
         self.reseed_calls += 1
         if self.fail_reseed_once:
@@ -382,13 +390,15 @@ def test_import_rejects_checksum_tampering_and_newer_versions(tmp_path: Path) ->
     make_repo(source, version="1.1")
     make_repo(destination, version="1.0")
     archive = export_fixture(source, tmp_path)
-    with pytest.raises(TopicTransferError, match="upgrade destination"):
+    assert (
         import_topic(
             archive,
             TransferRoots.from_repo(destination),
             Adapter(destination),
             confirm=False,
-        )
+        ).status
+        == "validated"
+    )
 
     (destination / "pyproject.toml").write_text(
         '[project]\nname = "learn-up"\nversion = "1.1"\n', encoding="utf-8"
@@ -668,7 +678,7 @@ def test_bootstrap_cleans_staging_when_consumer_fails(tmp_path: Path) -> None:
     assert not staging_root.exists()
 
 
-@pytest.mark.parametrize("source_version", ["1.1", "2.0"])
+@pytest.mark.parametrize("source_version", ["2.0"])
 def test_bootstrap_rejects_incompatible_source_before_exposing_data(
     tmp_path: Path, source_version: str
 ) -> None:
@@ -761,3 +771,23 @@ def test_bootstrap_does_not_replace_full_app_validation(tmp_path: Path) -> None:
         )
     assert not (destination / "content").exists()
     assert adapter.reseed_calls == 0
+
+
+@pytest.mark.parametrize(
+    ("source_version", "destination_version"), [("1.11", "1.0"), ("1.0", "1.11")]
+)
+def test_import_accepts_any_same_major(tmp_path, source_version, destination_version):
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    make_repo(source, version=source_version)
+    make_repo(destination, version=destination_version)
+    archive = export_fixture(source, tmp_path)
+    assert (
+        import_topic(
+            archive,
+            TransferRoots.from_repo(destination),
+            Adapter(destination),
+            confirm=True,
+        ).status
+        == "installed"
+    )
